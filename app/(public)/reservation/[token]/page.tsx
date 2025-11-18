@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function PublicReservationPage() {
@@ -114,9 +116,10 @@ export default function PublicReservationPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-            {error}
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         <Card>

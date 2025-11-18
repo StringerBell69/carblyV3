@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { getPresignedUrl } from '../../vehicles/actions';
 
 interface CheckInOutFormProps {
@@ -132,16 +135,18 @@ export function CheckInOutForm({ reservationId, type, onComplete }: CheckInOutFo
           </DialogHeader>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-              {error}
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Kilométrage *</label>
+                <Label htmlFor="mileage">Kilométrage *</Label>
                 <Input
+                  id="mileage"
                   type="number"
                   value={formData.mileage}
                   onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
@@ -152,10 +157,11 @@ export function CheckInOutForm({ reservationId, type, onComplete }: CheckInOutFo
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <Label htmlFor="fuelLevel">
                   Niveau de carburant (%) *
-                </label>
+                </Label>
                 <Input
+                  id="fuelLevel"
                   type="number"
                   value={formData.fuelLevel}
                   onChange={(e) => setFormData({ ...formData, fuelLevel: e.target.value })}
@@ -168,8 +174,9 @@ export function CheckInOutForm({ reservationId, type, onComplete }: CheckInOutFo
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Photos du véhicule</label>
+              <Label htmlFor="photos">Photos du véhicule</Label>
               <Input
+                id="photos"
                 type="file"
                 accept="image/*"
                 multiple
@@ -184,8 +191,9 @@ export function CheckInOutForm({ reservationId, type, onComplete }: CheckInOutFo
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notes</label>
+              <Label htmlFor="notes">Notes</Label>
               <Textarea
+                id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Commentaires, dommages constatés, etc."

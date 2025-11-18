@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,15 +71,16 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                  {error}
-                </div>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
+                <Label htmlFor="email">
                   Email
-                </label>
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -88,9 +92,9 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
+                <Label htmlFor="password">
                   Mot de passe
-                </label>
+                </Label>
                 <Input
                   id="password"
                   type="password"

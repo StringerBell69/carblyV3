@@ -6,6 +6,21 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle } from 'lucide-react';
 import { getVehicle, updateVehicle, deleteVehicle } from '../actions';
 import { formatCurrency } from '@/lib/utils';
 
@@ -19,6 +34,7 @@ export default function VehicleDetailPage() {
   const [error, setError] = useState('');
   const [vehicle, setVehicle] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [formData, setFormData] = useState({
     brand: '',
@@ -105,10 +121,6 @@ export default function VehicleDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
-      return;
-    }
-
     setSaving(true);
     setError('');
 
@@ -181,23 +193,44 @@ export default function VehicleDetailPage() {
               <Button onClick={() => setIsEditing(true)}>
                 ✏️ Modifier
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleDelete}
-                disabled={saving}
-                className="text-red-600 hover:bg-red-50"
-              >
-                🗑️ Supprimer
-              </Button>
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={saving}
+                    className="text-red-600 hover:bg-red-50"
+                  >
+                    🗑️ Supprimer
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Cette action supprimera définitivement ce véhicule. Cette opération ne peut pas être annulée.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Supprimer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {!isEditing ? (
@@ -315,7 +348,7 @@ export default function VehicleDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Marque *</label>
+                  <Label>Marque *</Label>
                   <Input
                     value={formData.brand}
                     onChange={(e) => handleChange('brand', e.target.value)}
@@ -323,7 +356,7 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Modèle *</label>
+                  <Label>Modèle *</Label>
                   <Input
                     value={formData.model}
                     onChange={(e) => handleChange('model', e.target.value)}
@@ -331,7 +364,7 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Année</label>
+                  <Label>Année</Label>
                   <Input
                     type="number"
                     value={formData.year}
@@ -339,21 +372,21 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Statut *</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    required
-                  >
-                    <option value="available">Disponible</option>
-                    <option value="rented">Loué</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="out_of_service">Hors service</option>
-                  </select>
+                  <Label>Statut *</Label>
+                  <Select value={formData.status} onValueChange={(v) => handleChange('status', v)} required>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Disponible</SelectItem>
+                      <SelectItem value="rented">Loué</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="out_of_service">Hors service</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Plaque *</label>
+                  <Label>Plaque *</Label>
                   <Input
                     value={formData.plate}
                     onChange={(e) => handleChange('plate', e.target.value.toUpperCase())}
@@ -361,7 +394,7 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">VIN</label>
+                  <Label>VIN</Label>
                   <Input
                     value={formData.vin}
                     onChange={(e) => handleChange('vin', e.target.value.toUpperCase())}
@@ -379,31 +412,33 @@ export default function VehicleDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Carburant</label>
-                  <select
-                    value={formData.fuelType}
-                    onChange={(e) => handleChange('fuelType', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="gasoline">Essence</option>
-                    <option value="diesel">Diesel</option>
-                    <option value="electric">Électrique</option>
-                    <option value="hybrid">Hybride</option>
-                  </select>
+                  <Label>Carburant</Label>
+                  <Select value={formData.fuelType} onValueChange={(v) => handleChange('fuelType', v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gasoline">Essence</SelectItem>
+                      <SelectItem value="diesel">Diesel</SelectItem>
+                      <SelectItem value="electric">Électrique</SelectItem>
+                      <SelectItem value="hybrid">Hybride</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Transmission</label>
-                  <select
-                    value={formData.transmission}
-                    onChange={(e) => handleChange('transmission', e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="manual">Manuelle</option>
-                    <option value="automatic">Automatique</option>
-                  </select>
+                  <Label>Transmission</Label>
+                  <Select value={formData.transmission} onValueChange={(v) => handleChange('transmission', v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manuelle</SelectItem>
+                      <SelectItem value="automatic">Automatique</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Places</label>
+                  <Label>Places</Label>
                   <Input
                     type="number"
                     value={formData.seats}
@@ -412,7 +447,7 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Kilométrage</label>
+                  <Label>Kilométrage</Label>
                   <Input
                     type="number"
                     value={formData.mileage}
@@ -431,7 +466,7 @@ export default function VehicleDetailPage() {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Tarif journalier (€) *</label>
+                  <Label>Tarif journalier (€) *</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -442,7 +477,7 @@ export default function VehicleDetailPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Caution (€)</label>
+                  <Label>Caution (€)</Label>
                   <Input
                     type="number"
                     step="0.01"

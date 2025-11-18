@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { createOrganization, createTeam, createStripeCheckoutSession } from './actions';
 
 type Plan = 'starter' | 'pro' | 'business';
@@ -169,9 +172,10 @@ export default function OnboardingPage() {
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-50 text-red-600 p-4 rounded-lg">
-            {error}
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Step 1: Organization */}
@@ -186,9 +190,9 @@ export default function OnboardingPage() {
             <CardContent>
               <form onSubmit={handleStep1} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="orgName" className="text-sm font-medium">
+                  <Label htmlFor="orgName">
                     Nom de l'organisation
-                  </label>
+                  </Label>
                   <Input
                     id="orgName"
                     type="text"
@@ -222,9 +226,9 @@ export default function OnboardingPage() {
             <CardContent>
               <form onSubmit={handleStep2} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="teamName" className="text-sm font-medium">
+                  <Label htmlFor="teamName">
                     Nom de l'agence
-                  </label>
+                  </Label>
                   <Input
                     id="teamName"
                     type="text"
@@ -236,9 +240,9 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="teamAddress" className="text-sm font-medium">
+                  <Label htmlFor="teamAddress">
                     Adresse (optionnel)
-                  </label>
+                  </Label>
                   <Input
                     id="teamAddress"
                     type="text"
@@ -278,31 +282,25 @@ export default function OnboardingPage() {
 
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={() => setBillingInterval('monthly')}
-                className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                  billingInterval === 'monthly'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                variant={billingInterval === 'monthly' ? 'default' : 'secondary'}
+                className="px-6"
               >
                 Mensuel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setBillingInterval('yearly')}
-                className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                  billingInterval === 'yearly'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                variant={billingInterval === 'yearly' ? 'default' : 'secondary'}
+                className="px-6 flex items-center gap-2"
               >
                 Annuel
                 <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
                   2 mois offerts
                 </span>
-              </button>
+              </Button>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
