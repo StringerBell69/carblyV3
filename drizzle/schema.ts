@@ -53,6 +53,7 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').unique().notNull(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
   name: text('name'),
   passwordHash: text('password_hash'),
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
