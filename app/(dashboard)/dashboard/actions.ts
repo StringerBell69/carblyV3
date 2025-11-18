@@ -1,30 +1,9 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { reservations, payments, vehicles, teamMembers } from '@/drizzle/schema';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { reservations, payments, vehicles } from '@/drizzle/schema';
+import { getCurrentTeamId } from '@/lib/session';
 import { sql, and, eq, gte, lte, count } from 'drizzle-orm';
-
-async function getCurrentTeamId() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user) {
-    return null;
-  }
-
-  // Get user's team from DB instead of session
-  const userTeam = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, session.user.id),
-    with: {
-      team: true,
-    },
-  });
-
-  return userTeam?.teamId || null;
-}
 
 export async function getDashboardStats() {
   try {

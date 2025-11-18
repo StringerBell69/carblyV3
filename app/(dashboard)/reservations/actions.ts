@@ -2,12 +2,13 @@
 
 import { db } from '@/lib/db';
 import { reservations, vehicles, customers } from '@/drizzle/schema';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getCurrentTeamId } from '@/lib/session';
 import { eq, and, or, lte, gte } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { generateRandomToken, calculateRentalPrice } from '@/lib/utils';
 import { sendReservationPaymentLink } from '@/lib/resend';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 export async function getReservations(filters?: {
   status?: string;
@@ -15,15 +16,11 @@ export async function getReservations(filters?: {
   endDate?: Date;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
 
     const reservationsList = await db.query.reservations.findMany({
       where: and(
@@ -48,18 +45,16 @@ export async function getReservations(filters?: {
 
 export async function getReservation(id: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
     const reservation = await db.query.reservations.findFirst({
       where: and(
         eq(reservations.id, id),
-        eq(reservations.teamId, session.user.currentTeamId)
+        eq(reservations.teamId, teamId)
       ),
       with: {
         vehicle: true,
@@ -87,11 +82,9 @@ export async function checkVehicleAvailability(data: {
   excludeReservationId?: string;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
@@ -99,7 +92,7 @@ export async function checkVehicleAvailability(data: {
     const overlappingReservations = await db.query.reservations.findMany({
       where: and(
         eq(reservations.vehicleId, data.vehicleId),
-        eq(reservations.teamId, session.user.currentTeamId),
+        eq(reservations.teamId, teamId),
         or(
           eq(reservations.status, 'paid'),
           eq(reservations.status, 'confirmed'),
@@ -140,15 +133,11 @@ export async function createReservation(data: {
   internalNotes?: string;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
 
     // Get vehicle
     const vehicle = await db.query.vehicles.findFirst({
@@ -243,11 +232,9 @@ export async function updateReservationStatus(
   status: 'paid' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
@@ -260,7 +247,7 @@ export async function updateReservationStatus(
       .where(
         and(
           eq(reservations.id, id),
-          eq(reservations.teamId, session.user.currentTeamId)
+          eq(reservations.teamId, teamId)
         )
       )
       .returning();
@@ -294,11 +281,9 @@ export async function updateReservationStatus(
 
 export async function searchCustomers(query: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 

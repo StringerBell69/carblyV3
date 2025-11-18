@@ -1,34 +1,23 @@
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getCurrentSession, getCurrentTeam } from '@/lib/session';
 import { DashboardNav } from '@/components/dashboard/nav';
-import { db } from '@/lib/db';
-import { teamMembers } from '@/drizzle/schema';
-import { eq } from 'drizzle-orm';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getCurrentSession();
 
   if (!session?.user) {
     redirect('/login');
   }
 
-  // Check if user has any team instead of relying on currentTeamId
-  // This prevents redirect loop when session is not refreshed after onboarding
-  const userTeams = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, session.user.id),
-    with: {
-      team: true,
-    },
-  });
+  // Check if user has any team
+  // This uses cached DB query to avoid multiple lookups per request
+  const team = await getCurrentTeam();
 
-  if (!userTeams) {
+  if (!team) {
     redirect('/onboarding');
   }
 
