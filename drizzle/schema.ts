@@ -55,7 +55,8 @@ export const users = pgTable('users', {
   email: text('email').unique().notNull(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   name: text('name'),
-  passwordHash: text('password_hash'),
+  image: text('image'),
+  // Note: passwordHash is not used by Better Auth - passwords are stored in accounts table
   isSuperAdmin: boolean('is_super_admin').default(false).notNull(),
   currentTeamId: uuid('current_team_id').references(() => teams.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
