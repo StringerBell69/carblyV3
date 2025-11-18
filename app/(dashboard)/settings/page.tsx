@@ -5,18 +5,25 @@ import { db } from '@/lib/db';
 import { teams } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
+import { getCurrentTeamId } from '@/lib/session';
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  if (!session?.user?.currentTeamId) {
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const teamId = await getCurrentTeamId();
+
+  if (!teamId) {
     redirect('/login');
   }
 
   const team = await db.query.teams.findFirst({
-    where: eq(teams.id, session.user.currentTeamId),
+    where: eq(teams.id, teamId),
     with: {
       organization: true,
     },

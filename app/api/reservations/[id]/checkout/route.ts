@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { reservations, vehicles } from '@/drizzle/schema';
 import { eq, and } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getCurrentTeamId } from '@/lib/session';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -25,7 +22,7 @@ export async function POST(
     const reservation = await db.query.reservations.findFirst({
       where: and(
         eq(reservations.id, params.id),
-        eq(reservations.teamId, session.user.currentTeamId)
+        eq(reservations.teamId, teamId)
       ),
     });
 

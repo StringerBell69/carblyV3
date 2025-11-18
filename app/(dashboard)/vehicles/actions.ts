@@ -2,8 +2,7 @@
 
 import { db } from '@/lib/db';
 import { vehicles } from '@/drizzle/schema';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getCurrentTeamId } from '@/lib/session';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -13,15 +12,11 @@ export async function getVehicles(filters?: {
   search?: string;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
 
     let query = db.query.vehicles.findMany({
       where: and(
@@ -46,18 +41,16 @@ export async function getVehicles(filters?: {
 
 export async function getVehicle(id: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
     const vehicle = await db.query.vehicles.findFirst({
       where: and(
         eq(vehicles.id, id),
-        eq(vehicles.teamId, session.user.currentTeamId)
+        eq(vehicles.teamId, teamId)
       ),
     });
 
@@ -87,15 +80,11 @@ export async function createVehicle(data: {
   images?: string[];
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
 
     // Check vehicle limit
     const team = await db.query.teams.findFirst({
@@ -167,11 +156,9 @@ export async function updateVehicle(
   }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
@@ -184,7 +171,7 @@ export async function updateVehicle(
       .where(
         and(
           eq(vehicles.id, id),
-          eq(vehicles.teamId, session.user.currentTeamId)
+          eq(vehicles.teamId, teamId)
         )
       )
       .returning();
@@ -208,11 +195,9 @@ export async function updateVehicle(
 
 export async function deleteVehicle(id: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
@@ -221,7 +206,7 @@ export async function deleteVehicle(id: string) {
       .where(
         and(
           eq(vehicles.id, id),
-          eq(vehicles.teamId, session.user.currentTeamId)
+          eq(vehicles.teamId, teamId)
         )
       );
 
@@ -243,11 +228,9 @@ export async function getPresignedUrl(data: {
   vehicleId?: string;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
 
@@ -256,7 +239,7 @@ export async function getPresignedUrl(data: {
     // Generate a unique file path
     const timestamp = Date.now();
     const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const path = `vehicles/${session.user.currentTeamId}/${data.vehicleId || 'temp'}/${timestamp}-${sanitizedFileName}`;
+    const path = `vehicles/${teamId}/${data.vehicleId || 'temp'}/${timestamp}-${sanitizedFileName}`;
 
     const url = await getPresignedUploadUrl({
       path,
