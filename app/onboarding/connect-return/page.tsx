@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { checkTeamConnectStatus } from '../connect-actions';
 
-export default function ConnectReturnPage() {
+function ConnectReturnContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get('team_id');
@@ -16,7 +16,7 @@ export default function ConnectReturnPage() {
   useEffect(() => {
     if (!teamId) {
       setStatus('error');
-      setError('Team ID missing');
+      setError('Team ID missing - URL incorrecte');
       return;
     }
 
@@ -78,16 +78,33 @@ export default function ConnectReturnPage() {
               <div className="text-5xl">❌</div>
               <h2 className="text-xl font-semibold">Erreur</h2>
               <p className="text-gray-600">{error}</p>
+              {teamId && (
+                <p className="text-xs text-gray-500">Team ID: {teamId}</p>
+              )}
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-primary hover:underline"
+                className="text-primary hover:underline mt-4"
               >
-                Retour au tableau de bord
+                Continuer vers le tableau de bord
               </button>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ConnectReturnPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        </div>
+      }
+    >
+      <ConnectReturnContent />
+    </Suspense>
   );
 }
