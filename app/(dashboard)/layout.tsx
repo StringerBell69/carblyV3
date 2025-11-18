@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { DashboardNav } from '@/components/dashboard/nav';
+import { db } from '@/lib/db';
+import { teamMembers } from '@/drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +19,16 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  if (!session.user.currentTeamId) {
+  // Check if user has any team instead of relying on currentTeamId
+  // This prevents redirect loop when session is not refreshed after onboarding
+  const userTeams = await db.query.teamMembers.findFirst({
+    where: eq(teamMembers.userId, session.user.id),
+    with: {
+      team: true,
+    },
+  });
+
+  if (!userTeams) {
     redirect('/onboarding');
   }
 
