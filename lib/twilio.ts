@@ -80,7 +80,6 @@ export async function sendReturnReminderSMS({
   customerName,
   vehicle,
   returnDate,
-  returnAddress,
 }: {
   to: string;
   customerName: string;
@@ -89,9 +88,8 @@ export async function sendReturnReminderSMS({
     model: string;
   };
   returnDate: string;
-  returnAddress: string;
 }) {
-  const body = `Carbly : Rappel restitution ${vehicle.brand} demain à ${returnAddress}. Même niveau de carburant requis.`;
+  const body = `Carbly : Rappel restitution ${vehicle.brand} ${vehicle.model} demain ${returnDate}. Même niveau de carburant requis.`;
 
   return sendSMS({ to, body });
 }

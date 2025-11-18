@@ -36,20 +36,16 @@ export default function SignupPage() {
     }
 
     try {
-      // TODO: Implement Better-auth signup
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+      const { signUp } = await import('@/lib/auth-client');
+
+      const result = await signUp.email({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Signup failed');
+      if (result.error) {
+        throw new Error(result.error.message || 'Signup failed');
       }
 
       // Redirect to onboarding

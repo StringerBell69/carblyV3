@@ -214,3 +214,37 @@ export async function sendReturnReminderEmail({
     throw error;
   }
 }
+
+// Alias for compatibility
+export async function sendReservationPaymentLink({
+  to,
+  customerName,
+  vehicleName,
+  startDate,
+  endDate,
+  amount,
+  magicLink,
+}: {
+  to: string;
+  customerName: string;
+  vehicleName: string;
+  startDate: Date;
+  endDate: Date;
+  amount: number;
+  magicLink: string;
+}) {
+  return sendReservationPaymentEmail({
+    to,
+    customerName,
+    vehicle: {
+      brand: vehicleName.split(' ')[0],
+      model: vehicleName.split(' ').slice(1).join(' '),
+    },
+    dates: {
+      start: startDate.toLocaleDateString('fr-FR'),
+      end: endDate.toLocaleDateString('fr-FR'),
+    },
+    amount,
+    magicLink,
+  });
+}
