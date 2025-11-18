@@ -9,6 +9,9 @@ export const auth = betterAuth({
     schema: {
       user: schema.users,
     },
+    generateId: () => {
+      return crypto.randomUUID();
+    },
   }),
   emailAndPassword: {
     enabled: true,
@@ -20,11 +23,6 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 60 * 24 * 7,
-    },
-  },
-  advanced: {
-    generateId: () => {
-      return crypto.randomUUID();
     },
   },
 });
