@@ -9,59 +9,325 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   typescript: true,
 });
 
-// Plan configurations
+// Platform application fee: 0.99€ per transaction
+export const PLATFORM_FEE_AMOUNT = 99; // in cents
+
+// Plan configurations for platform subscriptions
 export const PLANS = {
   starter: {
     name: 'Starter',
     price: 49,
     priceId: process.env.STRIPE_PRICE_STARTER || 'price_starter',
     maxVehicles: 5,
-    features: [
-      'Jusqu\'à 5 véhicules',
-      'Réservations illimitées',
-      'Paiements en ligne (carte)',
-      'Génération de contrats PDF',
-      'Dashboard basique',
-    ],
   },
   pro: {
     name: 'Pro',
     price: 99,
     priceId: process.env.STRIPE_PRICE_PRO || 'price_pro',
     maxVehicles: 20,
-    features: [
-      'Jusqu\'à 20 véhicules',
-      'Toutes les features Starter',
-      'Paiements SEPA',
-      'Vérification d\'identité (Stripe Identity)',
-      'Pré-autorisation caution en ligne',
-      'Assurance optionnelle',
-      'Calendrier de disponibilité',
-      'Prolongation de réservation',
-      'Annulation avec remboursement',
-    ],
   },
   business: {
     name: 'Business',
     price: 199,
     priceId: process.env.STRIPE_PRICE_BUSINESS || 'price_business',
     maxVehicles: -1, // unlimited
-    features: [
-      'Véhicules illimités',
-      'Toutes les features Pro',
-      'Multi-utilisateurs avec rôles',
-      'Programme de fidélité',
-      'Export comptable (CSV)',
-      'White-label contrats',
-      'Support prioritaire',
-      'API & webhooks',
-    ],
   },
 } as const;
 
 export type PlanType = keyof typeof PLANS;
 
-// Helper to create a checkout session for subscription
+/**
+ * STRIPE CONNECT FUNCTIONS
+ * Each team has their own Connect account to receive payments
+ */
+
+/**
+ * Create a Stripe Connect Express account for a team
+ */
+export async function createConnectAccount({
+  email,
+  businessName,
+  country = 'FR',
+}: {
+  email: string;
+  businessName: string;
+  country?: string;
+}): Promise<{ accountId?: string; error?: string }> {
+  try {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country,
+      email,
+      business_type: 'company',
+      company: {
+        name: businessName,
+      },
+      capabilities: {
+        card_payments: { requested: true },
+        sepa_debit_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      settings: {
+        payouts: {
+          schedule: {
+            interval: 'daily',
+          },
+        },
+      },
+    });
+
+    return { accountId: account.id };
+  } catch (error) {
+    console.error('[createConnectAccount]', error);
+    return { error: 'Failed to create Connect account' };
+  }
+}
+
+/**
+ * Create an account link for Connect onboarding
+ */
+export async function createConnectAccountLink({
+  accountId,
+  refreshUrl,
+  returnUrl,
+}: {
+  accountId: string;
+  refreshUrl: string;
+  returnUrl: string;
+}): Promise<{ url?: string; error?: string }> {
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    });
+
+    return { url: accountLink.url };
+  } catch (error) {
+    console.error('[createConnectAccountLink]', error);
+    return { error: 'Failed to create account link' };
+  }
+}
+
+/**
+ * Check if a Connect account is fully onboarded
+ */
+export async function checkConnectAccountStatus(
+  accountId: string
+): Promise<{ onboarded: boolean; error?: string }> {
+  try {
+    const account = await stripe.accounts.retrieve(accountId);
+
+    const onboarded =
+      account.charges_enabled &&
+      account.payouts_enabled &&
+      account.details_submitted;
+
+    return { onboarded };
+  } catch (error) {
+    console.error('[checkConnectAccountStatus]', error);
+    return { onboarded: false, error: 'Failed to check account status' };
+  }
+}
+
+/**
+ * PAYMENT FUNCTIONS WITH CONNECT
+ */
+
+/**
+ * Create a Checkout Session for reservation payment
+ * - Amount goes to the connected account
+ * - Platform takes 0.99€ application fee
+ * - Stripe fees are separate and paid by the connected account
+ */
+export async function createReservationCheckoutSession({
+  amount, // reservation amount in euros
+  connectedAccountId,
+  customerEmail,
+  reservationId,
+  teamId,
+  successUrl,
+  cancelUrl,
+  description,
+  cautionAmount, // optional deposit hold
+}: {
+  amount: number;
+  connectedAccountId: string;
+  customerEmail: string;
+  reservationId: string;
+  teamId: string;
+  successUrl: string;
+  cancelUrl: string;
+  description: string;
+  cautionAmount?: number;
+}): Promise<{ url?: string; sessionId?: string; error?: string }> {
+  try {
+    const amountInCents = Math.round(amount * 100);
+    const platformFee = PLATFORM_FEE_AMOUNT; // 0.99€
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: 'Location de véhicule',
+            description,
+          },
+          unit_amount: amountInCents,
+        },
+        quantity: 1,
+      },
+      {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: 'Frais de service Carbly',
+            description: 'Frais de plateforme (0,99€)',
+          },
+          unit_amount: platformFee,
+        },
+        quantity: 1,
+      },
+    ];
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card', 'sepa_debit'],
+      customer_email: customerEmail,
+      line_items: lineItems,
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+        transfer_data: {
+          destination: connectedAccountId,
+        },
+        metadata: {
+          reservationId,
+          teamId,
+          type: 'reservation_payment',
+        },
+      },
+      metadata: {
+        reservationId,
+        teamId,
+      },
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    });
+
+    return { url: session.url || undefined, sessionId: session.id };
+  } catch (error) {
+    console.error('[createReservationCheckoutSession]', error);
+    return { error: 'Failed to create checkout session' };
+  }
+}
+
+/**
+ * Create a payment intent for deposit hold (empreinte bancaire)
+ * - Creates a pre-authorization that holds funds
+ * - Does NOT charge the customer immediately
+ * - Must be captured or cancelled later
+ */
+export async function createDepositHold({
+  amount, // deposit amount in euros
+  connectedAccountId,
+  customerId,
+  reservationId,
+}: {
+  amount: number;
+  connectedAccountId: string;
+  customerId?: string;
+  reservationId: string;
+}): Promise<{ clientSecret?: string; paymentIntentId?: string; error?: string }> {
+  try {
+    const amountInCents = Math.round(amount * 100);
+
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: amountInCents,
+        currency: 'eur',
+        customer: customerId,
+        capture_method: 'manual', // Pre-authorization (empreinte)
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never',
+        },
+        metadata: {
+          reservationId,
+          type: 'deposit_hold',
+        },
+        description: `Caution - Réservation ${reservationId.slice(0, 8)}`,
+      },
+      {
+        stripeAccount: connectedAccountId, // On the connected account
+      }
+    );
+
+    return {
+      clientSecret: paymentIntent.client_secret || undefined,
+      paymentIntentId: paymentIntent.id,
+    };
+  } catch (error) {
+    console.error('[createDepositHold]', error);
+    return { error: 'Failed to create deposit hold' };
+  }
+}
+
+/**
+ * Cancel a deposit hold (release the funds)
+ */
+export async function cancelDepositHold(
+  paymentIntentId: string,
+  connectedAccountId: string
+): Promise<{ success: boolean }> {
+  try {
+    await stripe.paymentIntents.cancel(
+      paymentIntentId,
+      {},
+      { stripeAccount: connectedAccountId }
+    );
+    return { success: true };
+  } catch (error) {
+    console.error('[cancelDepositHold]', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Capture a deposit hold (charge the customer)
+ */
+export async function captureDepositHold({
+  paymentIntentId,
+  connectedAccountId,
+  amount, // Optional: capture partial amount
+}: {
+  paymentIntentId: string;
+  connectedAccountId: string;
+  amount?: number;
+}): Promise<{ success: boolean }> {
+  try {
+    await stripe.paymentIntents.capture(
+      paymentIntentId,
+      {
+        amount_to_capture: amount ? Math.round(amount * 100) : undefined,
+      },
+      { stripeAccount: connectedAccountId }
+    );
+    return { success: true };
+  } catch (error) {
+    console.error('[captureDepositHold]', error);
+    return { success: false };
+  }
+}
+
+/**
+ * PLATFORM SUBSCRIPTION FUNCTIONS
+ * For teams paying their monthly Carbly subscription
+ */
+
+/**
+ * Create subscription checkout for platform fees
+ */
 export async function createSubscriptionCheckout({
   planType,
   customerEmail,
@@ -76,111 +342,58 @@ export async function createSubscriptionCheckout({
   teamId: string;
   successUrl: string;
   cancelUrl: string;
-}) {
-  const plan = PLANS[planType];
+}): Promise<{ url?: string; error?: string }> {
+  try {
+    const plan = PLANS[planType];
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    payment_method_types: ['sepa_debit', 'card'],
-    line_items: [
-      {
-        price: plan.priceId,
-        quantity: 1,
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card', 'sepa_debit'],
+      line_items: [
+        {
+          price: plan.priceId,
+          quantity: 1,
+        },
+      ],
+      customer_email: customerEmail,
+      metadata: {
+        organizationId,
+        teamId,
+        plan: planType,
       },
-    ],
-    customer_email: customerEmail,
-    metadata: {
-      organizationId,
-      teamId,
-      plan: planType,
-    },
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-  });
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    });
 
-  return session;
+    return { url: session.url || undefined };
+  } catch (error) {
+    console.error('[createSubscriptionCheckout]', error);
+    return { error: 'Failed to create subscription checkout' };
+  }
 }
 
-// Helper to create a payment intent for reservation
-export async function createReservationPayment({
-  amount,
-  reservationId,
-  teamId,
-  customerEmail,
-  vehicleDescription,
-  vehicleImage,
-}: {
-  amount: number;
-  reservationId: string;
-  teamId: string;
-  customerEmail: string;
-  vehicleDescription: string;
-  vehicleImage?: string;
-}) {
-  // Create payment intent with reservation amount + 0.99€ fee
-  const totalAmount = Math.round((amount + 0.99) * 100); // in cents
-
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: totalAmount,
-    currency: 'eur',
-    automatic_payment_methods: {
-      enabled: true,
-    },
-    receipt_email: customerEmail,
-    metadata: {
-      reservationId,
-      teamId,
-      type: 'reservation',
-    },
-    description: `Location ${vehicleDescription}`,
-  });
-
-  return paymentIntent;
-}
-
-// Helper to create a caution pre-authorization (Pro+)
-export async function createCautionPreAuthorization({
-  amount,
-  reservationId,
-  customerEmail,
-}: {
-  amount: number;
-  reservationId: string;
-  customerEmail: string;
-}) {
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(amount * 100),
-    currency: 'eur',
-    capture_method: 'manual', // Don't capture immediately
-    automatic_payment_methods: {
-      enabled: true,
-    },
-    receipt_email: customerEmail,
-    metadata: {
-      reservationId,
-      type: 'caution',
-    },
-    description: `Caution - Réservation ${reservationId.slice(0, 8)}`,
-  });
-
-  return paymentIntent;
-}
-
-// Helper to create Stripe Identity verification session (Pro+)
+/**
+ * Create Stripe Identity verification session (for Pro+ plans)
+ */
 export async function createIdentityVerification({
   customerId,
   returnUrl,
 }: {
   customerId: string;
   returnUrl: string;
-}) {
-  const verificationSession = await stripe.identity.verificationSessions.create({
-    type: 'document',
-    metadata: {
-      customerId,
-    },
-    return_url: returnUrl,
-  });
+}): Promise<{ url?: string; error?: string }> {
+  try {
+    const verificationSession = await stripe.identity.verificationSessions.create({
+      type: 'document',
+      metadata: {
+        customerId,
+      },
+      return_url: returnUrl,
+    });
 
-  return verificationSession;
+    return { url: verificationSession.url || undefined };
+  } catch (error) {
+    console.error('[createIdentityVerification]', error);
+    return { error: 'Failed to create identity verification' };
+  }
 }
