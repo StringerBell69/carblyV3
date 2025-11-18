@@ -32,7 +32,8 @@ export async function uploadToR2({
 
   await s3Client.send(command);
 
-  // Return public URL
+  // Return Cloudflare CDN URL (custom domain configured in R2 settings)
+  // R2 automatically serves files through Cloudflare's global CDN
   return `${process.env.R2_PUBLIC_URL}/${path}`;
 }
 

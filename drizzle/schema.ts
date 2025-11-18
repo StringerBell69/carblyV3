@@ -32,6 +32,8 @@ export const teams = pgTable('teams', {
   maxVehicles: integer('max_vehicles').default(5).notNull(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
   subscriptionStatus: text('subscription_status').default('active'), // active, past_due, canceled
+  stripeConnectAccountId: text('stripe_connect_account_id').unique(),
+  stripeConnectOnboarded: boolean('stripe_connect_onboarded').default(false).notNull(),
   smsNotificationsEnabled: boolean('sms_notifications_enabled').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

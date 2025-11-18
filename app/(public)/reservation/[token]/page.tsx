@@ -153,41 +153,69 @@ export default function PublicReservationPage() {
               </div>
             </div>
 
-            <div className="border-t pt-4 space-y-2">
+            <div className="border-t pt-4 space-y-3">
               <h4 className="font-semibold">Détail du paiement</h4>
-              <div className="space-y-1">
+
+              <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Montant de la location</span>
-                  <span>{formatCurrency(parseFloat(reservation.totalAmount))}</span>
+                  <span className="text-gray-700">Montant de la location</span>
+                  <span className="font-medium">{formatCurrency(parseFloat(reservation.totalAmount))}</span>
                 </div>
+
                 {reservation.depositAmount && (
-                  <div className="flex justify-between text-sm">
-                    <span>Acompte à payer maintenant</span>
-                    <span className="font-semibold">
-                      {formatCurrency(parseFloat(reservation.depositAmount))}
-                    </span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="font-medium text-gray-900">Acompte à payer maintenant</span>
+                      <span className="font-semibold text-gray-900">
+                        {formatCurrency(parseFloat(reservation.depositAmount))}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 italic">
+                      Le solde sera à régler lors de la prise en charge du véhicule
+                    </p>
+                  </>
                 )}
+
                 {reservation.includeInsurance && reservation.insuranceAmount && (
                   <div className="flex justify-between text-sm">
-                    <span>Assurance</span>
-                    <span>{formatCurrency(parseFloat(reservation.insuranceAmount))}</span>
+                    <span className="text-gray-700">Assurance incluse</span>
+                    <span className="font-medium">{formatCurrency(parseFloat(reservation.insuranceAmount))}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span>Frais de service</span>
-                  <span>0,99€</span>
-                </div>
               </div>
 
-              <div className="border-t pt-2 mt-2">
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total à payer</span>
-                  <span className="text-primary">
-                    {formatCurrency(
-                      parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-600">Frais Stripe (estimation)</span>
+                    <span className="text-xs text-gray-400">~1.4% + 0.25€</span>
+                  </div>
+                  <span className="text-gray-600">
+                    ~{formatCurrency(
+                      Math.round((parseFloat(reservation.depositAmount || reservation.totalAmount) * 0.014 + 0.25) * 100) / 100
                     )}
                   </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Frais de service Carbly</span>
+                  <span className="text-gray-600">0,99€</span>
+                </div>
+                <p className="text-xs text-gray-500 italic pt-1">
+                  Les frais de paiement sont facturés séparément pour la transparence
+                </p>
+              </div>
+
+              <div className="border-t pt-3 mt-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-lg">Total à payer</span>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-primary">
+                      {formatCurrency(
+                        parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">+ frais de paiement</p>
+                  </div>
                 </div>
               </div>
             </div>

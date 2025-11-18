@@ -177,7 +177,7 @@ export async function completeOnboarding(sessionId: string) {
       return { error: 'Payment not completed' };
     }
 
-    const { teamId } = stripeSession.metadata as { teamId: string };
+    const { teamId, organizationId } = stripeSession.metadata as { teamId: string; organizationId: string };
 
     // Update team with subscription
     await db
@@ -188,7 +188,7 @@ export async function completeOnboarding(sessionId: string) {
       })
       .where(eq(teams.id, teamId));
 
-    return { success: true };
+    return { success: true, teamId, organizationId };
   } catch (error) {
     console.error('[completeOnboarding]', error);
     return { error: 'Failed to complete onboarding' };
