@@ -87,6 +87,7 @@ export async function createStripeCheckoutSession(data: {
   organizationId: string;
   teamId: string;
   plan: 'starter' | 'pro' | 'business';
+  billingInterval: 'monthly' | 'yearly';
 }) {
   try {
     const session = await auth.api.getSession({
@@ -121,16 +122,28 @@ export async function createStripeCheckoutSession(data: {
         .where(eq(organizations.id, data.organizationId));
     }
 
-    // Get price ID from environment
-    const priceId =
-      data.plan === 'starter'
-        ? process.env.STRIPE_STARTER_PRICE_ID
-        : data.plan === 'pro'
-        ? process.env.STRIPE_PRO_PRICE_ID
-        : process.env.STRIPE_BUSINESS_PRICE_ID;
+    // Get price ID from environment based on plan and billing interval
+    let priceId: string | undefined;
+
+    if (data.billingInterval === 'monthly') {
+      priceId =
+        data.plan === 'starter'
+          ? process.env.STRIPE_STARTER_PRICE_ID
+          : data.plan === 'pro'
+          ? process.env.STRIPE_PRO_PRICE_ID
+          : process.env.STRIPE_BUSINESS_PRICE_ID;
+    } else {
+      // yearly
+      priceId =
+        data.plan === 'starter'
+          ? process.env.STRIPE_STARTER_YEARLY_PRICE_ID
+          : data.plan === 'pro'
+          ? process.env.STRIPE_PRO_YEARLY_PRICE_ID
+          : process.env.STRIPE_BUSINESS_YEARLY_PRICE_ID;
+    }
 
     if (!priceId) {
-      return { error: 'Price ID not configured' };
+      return { error: 'Price ID not configured for selected plan and billing interval' };
     }
 
     // Create checkout session

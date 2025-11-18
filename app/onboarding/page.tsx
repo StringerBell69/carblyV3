@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { createOrganization, createTeam, createStripeCheckoutSession } from './actions';
 
 type Plan = 'starter' | 'pro' | 'business';
+type BillingInterval = 'monthly' | 'yearly';
 
 const PLANS = [
   {
     id: 'starter' as Plan,
     name: 'Starter',
-    price: '49€',
+    monthlyPrice: 49,
+    yearlyPrice: 490, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 5,
     features: [
       '5 véhicules maximum',
@@ -26,7 +28,8 @@ const PLANS = [
   {
     id: 'pro' as Plan,
     name: 'Pro',
-    price: '99€',
+    monthlyPrice: 99,
+    yearlyPrice: 990, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 20,
     features: [
       '20 véhicules maximum',
@@ -41,7 +44,8 @@ const PLANS = [
   {
     id: 'business' as Plan,
     name: 'Business',
-    price: '199€',
+    monthlyPrice: 199,
+    yearlyPrice: 1990, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 100,
     features: [
       '100 véhicules maximum',
@@ -68,6 +72,7 @@ export default function OnboardingPage() {
   const [teamId, setTeamId] = useState('');
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('pro');
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +134,7 @@ export default function OnboardingPage() {
         organizationId,
         teamId,
         plan: selectedPlan,
+        billingInterval,
       });
 
       if (result.error) {
@@ -262,7 +268,7 @@ export default function OnboardingPage() {
 
         {/* Step 3: Plan Selection */}
         {step === 3 && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold mb-2">Choisissez votre plan</h2>
               <p className="text-gray-600">
@@ -270,41 +276,89 @@ export default function OnboardingPage() {
               </p>
             </div>
 
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setBillingInterval('monthly')}
+                className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                  billingInterval === 'monthly'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Mensuel
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingInterval('yearly')}
+                className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                  billingInterval === 'yearly'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Annuel
+                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                  2 mois offerts
+                </span>
+              </button>
+            </div>
+
             <div className="grid md:grid-cols-3 gap-4">
-              {PLANS.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedPlan === plan.id
-                      ? 'ring-2 ring-primary'
-                      : 'hover:shadow-lg'
-                  } ${plan.popular ? 'md:scale-105' : ''}`}
-                  onClick={() => setSelectedPlan(plan.id)}
-                >
-                  <CardHeader>
-                    {plan.popular && (
-                      <div className="text-xs font-semibold text-primary mb-2">
-                        ⭐ POPULAIRE
+              {PLANS.map((plan) => {
+                const price = billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+                const savings = billingInterval === 'yearly' ? (plan.monthlyPrice * 12 - plan.yearlyPrice) : 0;
+
+                return (
+                  <Card
+                    key={plan.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedPlan === plan.id
+                        ? 'ring-2 ring-primary'
+                        : 'hover:shadow-lg'
+                    } ${plan.popular ? 'md:scale-105' : ''}`}
+                    onClick={() => setSelectedPlan(plan.id)}
+                  >
+                    <CardHeader>
+                      {plan.popular && (
+                        <div className="text-xs font-semibold text-primary mb-2">
+                          ⭐ POPULAIRE
+                        </div>
+                      )}
+                      <CardTitle>{plan.name}</CardTitle>
+                      <div className="space-y-1">
+                        <div className="text-3xl font-bold">
+                          {price}€
+                          <span className="text-base font-normal text-gray-500">
+                            {billingInterval === 'monthly' ? '/mois' : '/an'}
+                          </span>
+                        </div>
+                        {billingInterval === 'yearly' && (
+                          <div className="text-sm text-green-600 font-medium">
+                            Économisez {savings}€/an
+                          </div>
+                        )}
+                        {billingInterval === 'monthly' && (
+                          <div className="text-xs text-gray-500">
+                            ou {plan.yearlyPrice}€/an
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <CardTitle>{plan.name}</CardTitle>
-                    <div className="text-3xl font-bold">
-                      {plan.price}
-                      <span className="text-base font-normal text-gray-500">/mois</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm">
-                          <span className="text-green-500">✓</span>
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm">
+                            <span className="text-green-500">✓</span>
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             <div className="flex gap-2">
@@ -341,15 +395,31 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-medium">Prix mensuel:</span>
+                  <span className="font-medium">
+                    {billingInterval === 'monthly' ? 'Prix mensuel:' : 'Prix annuel:'}
+                  </span>
                   <span className="font-bold">
-                    {PLANS.find(p => p.id === selectedPlan)?.price}
+                    {billingInterval === 'monthly'
+                      ? `${PLANS.find(p => p.id === selectedPlan)?.monthlyPrice}€/mois`
+                      : `${PLANS.find(p => p.id === selectedPlan)?.yearlyPrice}€/an`
+                    }
                   </span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Facturation:</span>
-                  <span>Mensuelle</span>
+                  <span>{billingInterval === 'monthly' ? 'Mensuelle' : 'Annuelle'}</span>
                 </div>
+                {billingInterval === 'yearly' && (
+                  <div className="flex justify-between text-sm text-green-600 font-medium border-t pt-2">
+                    <span>Économie:</span>
+                    <span>
+                      {(() => {
+                        const plan = PLANS.find(p => p.id === selectedPlan);
+                        return plan ? (plan.monthlyPrice * 12 - plan.yearlyPrice) : 0;
+                      })()}€ (2 mois offerts)
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 text-sm text-gray-600">
