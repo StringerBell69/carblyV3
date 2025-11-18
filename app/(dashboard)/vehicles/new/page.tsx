@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle } from 'lucide-react';
 import { createVehicle } from '../actions';
 
 export default function NewVehiclePage() {
@@ -76,9 +80,10 @@ export default function NewVehiclePage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -89,9 +94,9 @@ export default function NewVehiclePage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="brand" className="text-sm font-medium">
+                <Label htmlFor="brand">
                   Marque *
-                </label>
+                </Label>
                 <Input
                   id="brand"
                   value={formData.brand}
@@ -102,9 +107,9 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="model" className="text-sm font-medium">
+                <Label htmlFor="model">
                   Modèle *
-                </label>
+                </Label>
                 <Input
                   id="model"
                   value={formData.model}
@@ -117,9 +122,9 @@ export default function NewVehiclePage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="year" className="text-sm font-medium">
+                <Label htmlFor="year">
                   Année
-                </label>
+                </Label>
                 <Input
                   id="year"
                   type="number"
@@ -132,9 +137,9 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="plate" className="text-sm font-medium">
+                <Label htmlFor="plate">
                   Plaque d'immatriculation *
-                </label>
+                </Label>
                 <Input
                   id="plate"
                   value={formData.plate}
@@ -146,9 +151,9 @@ export default function NewVehiclePage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="vin" className="text-sm font-medium">
+              <Label htmlFor="vin">
                 Numéro VIN
-              </label>
+              </Label>
               <Input
                 id="vin"
                 value={formData.vin}
@@ -167,43 +172,43 @@ export default function NewVehiclePage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="fuelType" className="text-sm font-medium">
+                <Label htmlFor="fuelType">
                   Type de carburant
-                </label>
-                <select
-                  id="fuelType"
-                  value={formData.fuelType}
-                  onChange={(e) => handleChange('fuelType', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                >
-                  <option value="gasoline">Essence</option>
-                  <option value="diesel">Diesel</option>
-                  <option value="electric">Électrique</option>
-                  <option value="hybrid">Hybride</option>
-                </select>
+                </Label>
+                <Select value={formData.fuelType} onValueChange={(v) => handleChange('fuelType', v)}>
+                  <SelectTrigger id="fuelType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gasoline">Essence</SelectItem>
+                    <SelectItem value="diesel">Diesel</SelectItem>
+                    <SelectItem value="electric">Électrique</SelectItem>
+                    <SelectItem value="hybrid">Hybride</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="transmission" className="text-sm font-medium">
+                <Label htmlFor="transmission">
                   Transmission
-                </label>
-                <select
-                  id="transmission"
-                  value={formData.transmission}
-                  onChange={(e) => handleChange('transmission', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                >
-                  <option value="manual">Manuelle</option>
-                  <option value="automatic">Automatique</option>
-                </select>
+                </Label>
+                <Select value={formData.transmission} onValueChange={(v) => handleChange('transmission', v)}>
+                  <SelectTrigger id="transmission">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">Manuelle</SelectItem>
+                    <SelectItem value="automatic">Automatique</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="seats" className="text-sm font-medium">
+                <Label htmlFor="seats">
                   Nombre de places
-                </label>
+                </Label>
                 <Input
                   id="seats"
                   type="number"
@@ -216,9 +221,9 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="mileage" className="text-sm font-medium">
+                <Label htmlFor="mileage">
                   Kilométrage
-                </label>
+                </Label>
                 <Input
                   id="mileage"
                   type="number"
@@ -239,9 +244,9 @@ export default function NewVehiclePage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="dailyRate" className="text-sm font-medium">
+                <Label htmlFor="dailyRate">
                   Tarif journalier (€) *
-                </label>
+                </Label>
                 <Input
                   id="dailyRate"
                   type="number"
@@ -255,9 +260,9 @@ export default function NewVehiclePage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="depositAmount" className="text-sm font-medium">
+                <Label htmlFor="depositAmount">
                   Montant de la caution (€)
-                </label>
+                </Label>
                 <Input
                   id="depositAmount"
                   type="number"

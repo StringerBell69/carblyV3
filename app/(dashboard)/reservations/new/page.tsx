@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { createReservation, createCustomer, checkVehicleAvailability } from '../actions';
 import { getVehicles } from '../../vehicles/actions';
 import { formatCurrency, calculateRentalPrice, calculateDays } from '@/lib/utils';
@@ -198,7 +202,10 @@ export default function NewReservationPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg">{error}</div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {step === 1 && (
@@ -256,8 +263,9 @@ export default function NewReservationPage() {
             <CardContent>
               <form onSubmit={handleStep2} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Date de début *</label>
+                  <Label htmlFor="startDate">Date de début *</Label>
                   <Input
+                    id="startDate"
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
@@ -266,8 +274,9 @@ export default function NewReservationPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Date de fin *</label>
+                  <Label htmlFor="endDate">Date de fin *</Label>
                   <Input
+                    id="endDate"
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
@@ -322,8 +331,9 @@ export default function NewReservationPage() {
             <form onSubmit={handleStep3} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Prénom *</label>
+                  <Label htmlFor="firstName">Prénom *</Label>
                   <Input
+                    id="firstName"
                     value={customerData.firstName}
                     onChange={(e) =>
                       setCustomerData({ ...customerData, firstName: e.target.value })
@@ -332,8 +342,9 @@ export default function NewReservationPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nom *</label>
+                  <Label htmlFor="lastName">Nom *</Label>
                   <Input
+                    id="lastName"
                     value={customerData.lastName}
                     onChange={(e) =>
                       setCustomerData({ ...customerData, lastName: e.target.value })
@@ -343,8 +354,9 @@ export default function NewReservationPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Email *</label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
+                  id="email"
                   type="email"
                   value={customerData.email}
                   onChange={(e) =>
@@ -354,8 +366,9 @@ export default function NewReservationPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Téléphone</label>
+                <Label htmlFor="phone">Téléphone</Label>
                 <Input
+                  id="phone"
                   type="tel"
                   value={customerData.phone}
                   onChange={(e) =>
@@ -419,15 +432,16 @@ export default function NewReservationPage() {
             </div>
 
             <div className="space-y-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="insurance"
                   checked={includeInsurance}
-                  onChange={(e) => setIncludeInsurance(e.target.checked)}
-                  className="rounded"
+                  onCheckedChange={setIncludeInsurance}
                 />
-                <span className="text-sm">Inclure assurance (5€/jour)</span>
-              </label>
+                <Label htmlFor="insurance" className="text-sm font-normal cursor-pointer">
+                  Inclure assurance (5€/jour)
+                </Label>
+              </div>
             </div>
 
             <div className="flex gap-2">

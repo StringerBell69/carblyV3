@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
 
 export default function ConnectRefreshPage() {
@@ -55,9 +57,10 @@ export default function ConnectRefreshPage() {
             </p>
 
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
-                {error}
-              </div>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
             <div className="space-y-2 pt-4">
