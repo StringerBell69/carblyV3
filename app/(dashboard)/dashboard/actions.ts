@@ -1,22 +1,38 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { reservations, payments, vehicles } from '@/drizzle/schema';
+import { reservations, payments, vehicles, teamMembers } from '@/drizzle/schema';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { sql, and, eq, gte, lte, count } from 'drizzle-orm';
 
+async function getCurrentTeamId() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    return null;
+  }
+
+  // Get user's team from DB instead of session
+  const userTeam = await db.query.teamMembers.findFirst({
+    where: eq(teamMembers.userId, session.user.id),
+    with: {
+      team: true,
+    },
+  });
+
+  return userTeam?.teamId || null;
+}
+
 export async function getDashboardStats() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -106,15 +122,11 @@ export async function getDashboardStats() {
 
 export async function getRecentReservations() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
 
     const recentReservations = await db.query.reservations.findMany({
       where: eq(reservations.teamId, teamId),
@@ -135,15 +147,11 @@ export async function getRecentReservations() {
 
 export async function getMonthlyRevenue() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const teamId = await getCurrentTeamId();
 
-    if (!session?.user?.currentTeamId) {
+    if (!teamId) {
       return { error: 'Unauthorized' };
     }
-
-    const teamId = session.user.currentTeamId;
     const now = new Date();
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
