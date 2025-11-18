@@ -19,18 +19,44 @@ export const PLANS = {
     price: 49,
     priceId: process.env.STRIPE_PRICE_STARTER || 'price_starter',
     maxVehicles: 5,
+    features: [
+      'Jusqu\'à 5 véhicules',
+      'Réservations illimitées',
+      'Paiements en ligne sécurisés',
+      'Contrats électroniques',
+      'Statistiques de base',
+      'Support email',
+    ],
   },
   pro: {
     name: 'Pro',
     price: 99,
     priceId: process.env.STRIPE_PRICE_PRO || 'price_pro',
     maxVehicles: 20,
+    features: [
+      'Jusqu\'à 20 véhicules',
+      'Toutes les fonctionnalités Starter',
+      'Gestion avancée de la flotte',
+      'Statistiques détaillées',
+      'Multi-agences',
+      'Support prioritaire',
+      'API access',
+    ],
   },
   business: {
     name: 'Business',
     price: 199,
     priceId: process.env.STRIPE_PRICE_BUSINESS || 'price_business',
     maxVehicles: -1, // unlimited
+    features: [
+      'Véhicules illimités',
+      'Toutes les fonctionnalités Pro',
+      'White-label',
+      'Intégrations personnalisées',
+      'Support dédié 24/7',
+      'Formation de l\'équipe',
+      'SLA garanti',
+    ],
   },
 } as const;
 
