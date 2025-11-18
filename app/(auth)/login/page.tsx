@@ -20,23 +20,23 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // TODO: Implement Better-auth login
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const { signIn } = await import('@/lib/auth-client');
+
+      const result = await signIn.email({
+        email,
+        password,
       });
 
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
+      if (result.error) {
+        throw new Error(result.error.message || 'Invalid credentials');
       }
 
-      const data = await response.json();
+      // Check user data to determine redirect
+      const user = result.data?.user;
 
-      // Check if user is SuperAdmin
-      if (data.user?.isSuperAdmin) {
+      if (user?.isSuperAdmin) {
         router.push('/admin');
-      } else if (data.user?.currentTeamId) {
+      } else if (user?.currentTeamId) {
         router.push('/dashboard');
       } else {
         router.push('/onboarding');
