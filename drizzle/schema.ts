@@ -7,6 +7,8 @@ export const vehicleStatusEnum = pgEnum('vehicle_status', ['available', 'rented'
 export const reservationStatusEnum = pgEnum('reservation_status', ['draft', 'pending_payment', 'paid', 'confirmed', 'in_progress', 'completed', 'cancelled']);
 export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'total', 'caution', 'insurance']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'succeeded', 'failed', 'refunded']);
+export const messageTypeEnum = pgEnum('message_type', ['email', 'sms']);
+export const communicationStatusEnum = pgEnum('communication_status', ['pending', 'sent', 'delivered', 'failed']);
 
 // Organizations
 export const organizations = pgTable('organizations', {
@@ -47,6 +49,8 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   members: many(teamMembers),
   vehicles: many(vehicles),
   reservations: many(reservations),
+  messageTemplates: many(messageTemplates),
+  communications: many(communications),
 }));
 
 // Users
@@ -190,6 +194,7 @@ export const customers = pgTable('customers', {
 
 export const customersRelations = relations(customers, ({ many }) => ({
   reservations: many(reservations),
+  communications: many(communications),
 }));
 
 // Reservations
@@ -282,6 +287,52 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
+// Message Templates
+export const messageTemplates = pgTable('message_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  type: messageTypeEnum('type').notNull(),
+  subject: text('subject'), // Only for emails
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const messageTemplatesRelations = relations(messageTemplates, ({ one }) => ({
+  team: one(teams, {
+    fields: [messageTemplates.teamId],
+    references: [teams.id],
+  }),
+}));
+
+// Communications (message history)
+export const communications = pgTable('communications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'restrict' }).notNull(),
+  type: messageTypeEnum('type').notNull(),
+  subject: text('subject'), // Only for emails
+  message: text('message').notNull(),
+  status: communicationStatusEnum('status').default('pending').notNull(),
+  sentAt: timestamp('sent_at'),
+  deliveredAt: timestamp('delivered_at'),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const communicationsRelations = relations(communications, ({ one }) => ({
+  team: one(teams, {
+    fields: [communications.teamId],
+    references: [teams.id],
+  }),
+  customer: one(customers, {
+    fields: [communications.customerId],
+    references: [customers.id],
+  }),
+}));
+
 // Type exports
 export type Organization = typeof organizations.$inferSelect;
 export type Team = typeof teams.$inferSelect;
@@ -292,6 +343,8 @@ export type Customer = typeof customers.$inferSelect;
 export type Reservation = typeof reservations.$inferSelect;
 export type Contract = typeof contracts.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type MessageTemplate = typeof messageTemplates.$inferSelect;
+export type Communication = typeof communications.$inferSelect;
 
 export type NewOrganization = typeof organizations.$inferInsert;
 export type NewTeam = typeof teams.$inferInsert;
@@ -302,3 +355,5 @@ export type NewCustomer = typeof customers.$inferInsert;
 export type NewReservation = typeof reservations.$inferInsert;
 export type NewContract = typeof contracts.$inferInsert;
 export type NewPayment = typeof payments.$inferInsert;
+export type NewMessageTemplate = typeof messageTemplates.$inferInsert;
+export type NewCommunication = typeof communications.$inferInsert;
