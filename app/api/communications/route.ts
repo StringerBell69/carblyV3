@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { communications, customers } from '@/drizzle/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { getCurrentTeamId } from '@/lib/session';
+import { sendEmail, sendSMS } from '@/lib/communications';
 
 // GET /api/communications - Get all communications for current team
 export async function GET() {
@@ -66,6 +67,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
+    // Validate contact information
+    if (type === 'email' && !customer.email) {
+      return NextResponse.json(
+        { error: 'Customer does not have an email address' },
+        { status: 400 }
+      );
+    }
+
+    if (type === 'sms' && !customer.phone) {
+      return NextResponse.json(
+        { error: 'Customer does not have a phone number' },
+        { status: 400 }
+      );
+    }
+
     // Create communication record
     const [comm] = await db
       .insert(communications)
@@ -79,20 +95,40 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    // TODO: Implement actual email/SMS sending logic here
-    // For now, we'll just mark it as sent
-    // In a real implementation, you'd integrate with services like:
-    // - Resend/SendGrid for emails
-    // - Twilio for SMS
+    // Send the message
+    let sendResult: { success: boolean; error?: string; messageId?: string };
 
-    // Simulate sending
-    await db
-      .update(communications)
-      .set({
-        status: 'sent',
-        sentAt: new Date(),
-      })
-      .where(eq(communications.id, comm.id));
+    if (type === 'email') {
+      sendResult = await sendEmail({
+        to: customer.email,
+        subject: subject!,
+        message,
+      });
+    } else {
+      sendResult = await sendSMS({
+        to: customer.phone!,
+        message,
+      });
+    }
+
+    // Update communication record based on send result
+    if (sendResult.success) {
+      await db
+        .update(communications)
+        .set({
+          status: 'sent',
+          sentAt: new Date(),
+        })
+        .where(eq(communications.id, comm.id));
+    } else {
+      await db
+        .update(communications)
+        .set({
+          status: 'failed',
+          errorMessage: sendResult.error,
+        })
+        .where(eq(communications.id, comm.id));
+    }
 
     const updatedComm = await db.query.communications.findFirst({
       where: eq(communications.id, comm.id),
@@ -100,6 +136,13 @@ export async function POST(req: NextRequest) {
         customer: true,
       },
     });
+
+    if (!sendResult.success) {
+      return NextResponse.json(
+        { error: sendResult.error || 'Failed to send message', communication: updatedComm },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(updatedComm, { status: 201 });
   } catch (error) {
