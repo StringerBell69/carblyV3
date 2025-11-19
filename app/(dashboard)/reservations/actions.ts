@@ -424,8 +424,7 @@ export async function generateReservationContract(reservationId: string) {
       return { error: contractResult.error };
     }
 
-    // TODO: Send to Yousign for signature
-    // For now, just send email with contract link
+    // Get full reservation data for Yousign
     const fullReservation = await db.query.reservations.findFirst({
       where: eq(reservations.id, reservationId),
       with: {
@@ -434,18 +433,51 @@ export async function generateReservationContract(reservationId: string) {
       },
     });
 
-    if (fullReservation) {
-      const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
-      await sendPaymentConfirmedEmail({
-        to: fullReservation.customer.email,
-        customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
-        vehicle: {
-          brand: fullReservation.vehicle.brand,
-          model: fullReservation.vehicle.model,
-        },
-        yousignLink: contractResult.pdfUrl,
-      });
+    if (!fullReservation) {
+      return { error: 'Failed to fetch reservation details' };
     }
+
+    // Send to Yousign for signature
+    const { createYousignSignatureRequest } = await import('@/lib/yousign');
+    const yousignResult = await createYousignSignatureRequest({
+      contractPdfUrl: contractResult.pdfUrl!,
+      customer: {
+        firstName: fullReservation.customer.firstName || '',
+        lastName: fullReservation.customer.lastName || '',
+        email: fullReservation.customer.email || '',
+        phone: fullReservation.customer.phone || undefined,
+      },
+      reservationId,
+    });
+
+    if (yousignResult.error) {
+      console.error('[generateReservationContract] Yousign error:', yousignResult.error);
+      // Continue even if Yousign fails - send email with PDF link
+    } else if (yousignResult.signatureRequestId) {
+      // Update contract with Yousign signature request ID
+      const { contracts } = await import('@/drizzle/schema');
+      await db
+        .update(contracts)
+        .set({
+          yousignSignatureRequestId: yousignResult.signatureRequestId,
+          updatedAt: new Date(),
+        })
+        .where(eq(contracts.reservationId, reservationId));
+
+      console.log('[generateReservationContract] Yousign signature request created:', yousignResult.signatureRequestId);
+    }
+
+    // Send confirmation email
+    const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
+    await sendPaymentConfirmedEmail({
+      to: fullReservation.customer.email,
+      customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+      vehicle: {
+        brand: fullReservation.vehicle.brand,
+        model: fullReservation.vehicle.model,
+      },
+      yousignLink: contractResult.pdfUrl,
+    });
 
     revalidatePath(`/reservations/${reservationId}`);
 
