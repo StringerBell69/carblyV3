@@ -23,6 +23,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { PaymentLinkCard } from './components/payment-link-card';
+import { ContractSection } from './components/contract-section';
 
 const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, icon: any }> = {
   draft: { variant: 'secondary', label: 'Brouillon', icon: FileText },
@@ -224,6 +225,12 @@ export default async function ReservationDetailPage({
               customerName={`${reservation.customer.firstName} ${reservation.customer.lastName}`}
             />
           )}
+
+          <ContractSection
+            reservationId={reservation.id}
+            contract={reservation.contracts?.[0]}
+            status={reservation.status}
+          />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">

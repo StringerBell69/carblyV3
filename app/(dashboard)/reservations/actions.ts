@@ -390,3 +390,68 @@ export async function resendPaymentLink(reservationId: string) {
     return { error: 'Failed to resend payment link' };
   }
 }
+
+export async function generateReservationContract(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get reservation
+    const reservation = await db.query.reservations.findFirst({
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
+    });
+
+    if (!reservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    // Check if reservation is paid
+    if (reservation.status === 'pending_payment' || reservation.status === 'draft') {
+      return { error: 'Reservation must be paid before generating contract' };
+    }
+
+    // Generate contract PDF
+    const { generateContractPDF } = await import('@/lib/pdf/generate');
+    const contractResult = await generateContractPDF(reservationId);
+
+    if (contractResult.error) {
+      return { error: contractResult.error };
+    }
+
+    // TODO: Send to Yousign for signature
+    // For now, just send email with contract link
+    const fullReservation = await db.query.reservations.findFirst({
+      where: eq(reservations.id, reservationId),
+      with: {
+        customer: true,
+        vehicle: true,
+      },
+    });
+
+    if (fullReservation) {
+      const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
+      await sendPaymentConfirmedEmail({
+        to: fullReservation.customer.email,
+        customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+        vehicle: {
+          brand: fullReservation.vehicle.brand,
+          model: fullReservation.vehicle.model,
+        },
+        yousignLink: contractResult.pdfUrl,
+      });
+    }
+
+    revalidatePath(`/reservations/${reservationId}`);
+
+    return { success: true, contractUrl: contractResult.pdfUrl };
+  } catch (error) {
+    console.error('[generateReservationContract]', error);
+    return { error: 'Failed to generate contract' };
+  }
+}

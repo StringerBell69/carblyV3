@@ -31,7 +31,6 @@ export default function PublicReservationPage() {
   const [error, setError] = useState('');
   const [reservation, setReservation] = useState<any>(null);
   const [paying, setPaying] = useState(false);
-  const [generatingContract, setGeneratingContract] = useState(false);
 
   useEffect(() => {
     loadReservation();
@@ -76,30 +75,6 @@ export default function PublicReservationPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de paiement');
       setPaying(false);
-    }
-  };
-
-  const handleGenerateContract = async () => {
-    setGeneratingContract(true);
-    setError('');
-
-    try {
-      const response = await fetch(`/api/reservations/public/${token}/generate-contract`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de la génération du contrat');
-      }
-
-      // Reload reservation to get updated contract
-      await loadReservation();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la génération du contrat');
-    } finally {
-      setGeneratingContract(false);
     }
   };
 
@@ -173,51 +148,76 @@ export default function PublicReservationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {contractPdfUrl ? (
+              {contract?.signedAt && contract?.signedPdfUrl ? (
+                // Contract is signed - show download link
                 <>
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle2 className="w-5 h-5" />
-                    <p className="font-medium">Contrat généré et disponible</p>
+                    <p className="font-medium">Contrat signé</p>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Le contrat a été envoyé à votre adresse email. Vous pouvez également le télécharger ci-dessous.
+                    Votre contrat a été signé électroniquement. Vous pouvez le télécharger ci-dessous.
                   </p>
                   <a
-                    href={contractPdfUrl}
+                    href={contract.signedPdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <Download className="w-5 h-5" />
-                    Télécharger le contrat
+                    Télécharger le contrat signé
                   </a>
                 </>
-              ) : (
+              ) : contract?.yousignSignatureRequestId ? (
+                // Contract generated but not signed - show Yousign link
+                <>
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <AlertCircle className="w-5 h-5" />
+                    <p className="font-medium">Signature requise</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Le contrat de location est prêt. Veuillez le signer électroniquement via Yousign.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Un email avec le lien de signature vous a été envoyé. Vous pouvez également accéder directement à la signature ci-dessous.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      // Reload to check if signature link is available
+                      window.location.reload();
+                    }}
+                    className="w-full"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Actualiser le statut
+                  </Button>
+                </>
+              ) : contractPdfUrl ? (
+                // Contract PDF exists but Yousign not initiated
                 <>
                   <div className="flex items-center gap-2 text-yellow-600">
                     <Clock className="w-5 h-5" />
-                    <p className="font-medium">Contrat en cours de génération</p>
+                    <p className="font-medium">Contrat en préparation</p>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Le contrat sera disponible dans quelques instants. Vous pouvez le générer manuellement si nécessaire.
+                    Le contrat est en cours de préparation par l'agence. Vous recevrez un email avec le lien de signature électronique très prochainement.
                   </p>
-                  <Button
-                    onClick={handleGenerateContract}
-                    disabled={generatingContract}
-                    className="w-full"
-                  >
-                    {generatingContract ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Génération en cours...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Générer le contrat
-                      </>
-                    )}
-                  </Button>
+                </>
+              ) : (
+                // No contract yet
+                <>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="w-5 h-5" />
+                    <p className="font-medium">En attente du contrat</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    L'agence va générer votre contrat de location sous peu. Vous recevrez un email dès qu'il sera prêt à signer.
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      💡 Le contrat sera disponible une fois le paiement complet effectué ou lorsque l'agence le générera.
+                    </p>
+                  </div>
                 </>
               )}
             </CardContent>
