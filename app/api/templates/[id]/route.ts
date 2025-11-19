@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { messageTemplates } from '@/drizzle/schema';
+import { messageTemplates, hiddenTemplates } from '@/drizzle/schema';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentTeamId } from '@/lib/session';
 
@@ -32,6 +32,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
 
+    // Cannot edit default templates
+    if (template.isDefault) {
+      return NextResponse.json(
+        { error: 'Cannot edit default templates. Create a copy instead.' },
+        { status: 403 }
+      );
+    }
+
     if (type === 'email' && !subject) {
       return NextResponse.json(
         { error: 'Subject is required for email templates' },
@@ -61,7 +69,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/templates/[id] - Delete template
+// DELETE /api/templates/[id] - Delete or hide template
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -74,21 +82,47 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify template exists and belongs to team
+    // Check if template exists
     const template = await db.query.messageTemplates.findFirst({
-      where: and(
-        eq(messageTemplates.id, id),
-        eq(messageTemplates.teamId, teamId)
-      ),
+      where: eq(messageTemplates.id, id),
     });
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
 
+    // If it's a default template, hide it instead of deleting
+    if (template.isDefault) {
+      // Check if already hidden
+      const existing = await db.query.hiddenTemplates.findFirst({
+        where: and(
+          eq(hiddenTemplates.teamId, teamId),
+          eq(hiddenTemplates.templateId, id)
+        ),
+      });
+
+      if (!existing) {
+        await db.insert(hiddenTemplates).values({
+          teamId,
+          templateId: id,
+        });
+      }
+
+      return NextResponse.json({ success: true, hidden: true });
+    }
+
+    // For team templates, verify ownership
+    if (template.teamId !== teamId) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this template' },
+        { status: 403 }
+      );
+    }
+
+    // Delete team template
     await db.delete(messageTemplates).where(eq(messageTemplates.id, id));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deleted: true });
   } catch (error) {
     console.error('[DELETE /api/templates/[id]]', error);
     return NextResponse.json(

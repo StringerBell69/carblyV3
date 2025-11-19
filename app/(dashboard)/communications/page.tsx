@@ -39,6 +39,9 @@ import {
   Edit,
   Trash2,
   MoreVertical,
+  Copy,
+  EyeOff,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,6 +54,8 @@ interface MessageTemplate {
   type: MessageType;
   subject?: string | null;
   message: string;
+  isDefault: boolean;
+  teamId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,10 +85,12 @@ export default function CommunicationsPage() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [hiddenTemplates, setHiddenTemplates] = useState<MessageTemplate[]>([]);
   const [communications, setCommunications] = useState<Communication[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isHiddenDialogOpen, setIsHiddenDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
   const [templateForm, setTemplateForm] = useState({
     name: '',
@@ -95,6 +102,7 @@ export default function CommunicationsPage() {
   // Fetch data on mount
   useEffect(() => {
     fetchTemplates();
+    fetchHiddenTemplates();
     fetchCommunications();
     fetchCustomers();
   }, []);
@@ -108,6 +116,18 @@ export default function CommunicationsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch templates:', error);
+    }
+  };
+
+  const fetchHiddenTemplates = async () => {
+    try {
+      const res = await fetch('/api/templates/hidden');
+      if (res.ok) {
+        const data = await res.json();
+        setHiddenTemplates(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch hidden templates:', error);
     }
   };
 
@@ -216,26 +236,69 @@ export default function CommunicationsPage() {
     }
   };
 
-  const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+  const handleDeleteTemplate = async (id: string, isDefault: boolean) => {
+    const confirmMsg = isDefault
+      ? 'Are you sure you want to hide this default template? You can restore it later.'
+      : 'Are you sure you want to delete this template? This cannot be undone.';
+
+    if (!confirm(confirmMsg)) return;
 
     try {
       const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Template deleted successfully!');
+        const data = await res.json();
+        if (data.hidden) {
+          toast.success('Template hidden successfully!');
+        } else {
+          toast.success('Template deleted successfully!');
+        }
         fetchTemplates();
+        fetchHiddenTemplates();
       } else {
-        toast.error('Failed to delete template');
+        const error = await res.json();
+        toast.error(error.error || 'Failed to delete template');
       }
     } catch (error) {
       toast.error('Failed to delete template');
     }
   };
 
+  const handleRestoreTemplate = async (id: string) => {
+    try {
+      const res = await fetch(`/api/templates/${id}/restore`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Template restored successfully!');
+        fetchTemplates();
+        fetchHiddenTemplates();
+      } else {
+        toast.error('Failed to restore template');
+      }
+    } catch (error) {
+      toast.error('Failed to restore template');
+    }
+  };
+
   const handleEditTemplate = (template: MessageTemplate) => {
+    // Cannot edit default templates
+    if (template.isDefault) {
+      toast.error('Cannot edit default templates. Use the template as-is or create a custom one.');
+      return;
+    }
+
     setEditingTemplate(template);
     setTemplateForm({
       name: template.name,
+      type: template.type,
+      subject: template.subject || '',
+      message: template.message,
+    });
+    setIsTemplateDialogOpen(true);
+  };
+
+  const handleDuplicateTemplate = (template: MessageTemplate) => {
+    setEditingTemplate(null); // Not editing, creating new
+    setTemplateForm({
+      name: `${template.name} (Copy)`,
       type: template.type,
       subject: template.subject || '',
       message: template.message,
@@ -611,6 +674,11 @@ export default function CommunicationsPage() {
                             <Badge variant="outline">
                               {template.type.toUpperCase()}
                             </Badge>
+                            {template.isDefault && (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+                                Default
+                              </Badge>
+                            )}
                           </div>
                           {template.subject && (
                             <p className="text-sm font-medium mb-1">
@@ -634,28 +702,129 @@ export default function CommunicationsPage() {
                               <Send className="h-4 w-4 mr-2" />
                               Use Template
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEditTemplate(template)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteTemplate(template.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                            {template.isDefault ? (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleDuplicateTemplate(template)}
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteTemplate(template.id, true)}
+                                  className="text-orange-600"
+                                >
+                                  <EyeOff className="h-4 w-4 mr-2" />
+                                  Hide
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditTemplate(template)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteTemplate(template.id, false)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </div>
                   ))
                 )}
+
+                {/* Hidden Templates Section */}
+                {hiddenTemplates.length > 0 && (
+                  <div className="mt-8 pt-8 border-t">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold">Hidden Default Templates</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Restore templates to use them again
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          fetchHiddenTemplates();
+                          setIsHiddenDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Hidden ({hiddenTemplates.length})
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Hidden Templates Dialog */}
+          <Dialog open={isHiddenDialogOpen} onOpenChange={setIsHiddenDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Hidden Default Templates</DialogTitle>
+                <DialogDescription>
+                  Restore templates to make them visible again
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {hiddenTemplates.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    No hidden templates
+                  </p>
+                ) : (
+                  hiddenTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="border rounded-lg p-4 flex items-start justify-between"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold">{template.name}</h3>
+                          <Badge variant="outline">
+                            {template.type.toUpperCase()}
+                          </Badge>
+                        </div>
+                        {template.subject && (
+                          <p className="text-sm font-medium mb-1">
+                            {template.subject}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {template.message}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          handleRestoreTemplate(template.id);
+                          if (hiddenTemplates.length === 1) {
+                            setIsHiddenDialogOpen(false);
+                          }
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Restore
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="history">
