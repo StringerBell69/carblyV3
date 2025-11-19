@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentSession, getCurrentTeam } from '@/lib/session';
 import { DashboardNav } from '@/components/dashboard/nav';
+import { Toaster } from 'sonner';
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
           </div>
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 }
