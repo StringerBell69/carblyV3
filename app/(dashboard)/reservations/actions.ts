@@ -339,3 +339,54 @@ export async function createCustomer(data: {
     return { error: 'Failed to create customer' };
   }
 }
+
+export async function resendPaymentLink(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get reservation with customer and vehicle data
+    const reservation = await db.query.reservations.findFirst({
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
+      with: {
+        customer: true,
+        vehicle: true,
+      },
+    });
+
+    if (!reservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    if (!reservation.magicLinkToken) {
+      return { error: 'No payment link available for this reservation' };
+    }
+
+    if (reservation.status !== 'pending_payment') {
+      return { error: 'This reservation is not awaiting payment' };
+    }
+
+    // Send email with magic link
+    const magicLink = `${process.env.NEXT_PUBLIC_URL}/reservation/${reservation.magicLinkToken}`;
+    await sendReservationPaymentLink({
+      to: reservation.customer.email,
+      customerName: `${reservation.customer.firstName} ${reservation.customer.lastName}`,
+      vehicleName: `${reservation.vehicle.brand} ${reservation.vehicle.model}`,
+      startDate: reservation.startDate,
+      endDate: reservation.endDate,
+      amount: parseFloat(reservation.totalAmount),
+      magicLink,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('[resendPaymentLink]', error);
+    return { error: 'Failed to resend payment link' };
+  }
+}

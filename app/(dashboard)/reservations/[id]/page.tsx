@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,8 +21,8 @@ import {
   XCircle,
   AlertCircle,
   CreditCard,
-  Copy,
 } from 'lucide-react';
+import { PaymentLinkCard } from './components/payment-link-card';
 
 const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, icon: any }> = {
   draft: { variant: 'secondary', label: 'Brouillon', icon: FileText },
@@ -218,38 +217,12 @@ export default async function ReservationDetailPage({
           )}
 
           {magicLink && reservation.status === 'pending_payment' && (
-            <Card className="border-yellow-200 bg-yellow-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-yellow-900">
-                  <AlertCircle className="h-5 w-5" />
-                  Lien de paiement
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-yellow-800">
-                    Partagez ce lien avec le client pour qu'il puisse payer sa réservation
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={magicLink}
-                      readOnly
-                      className="flex-1 px-3 py-2 border rounded-md text-sm bg-white"
-                    />
-                    <Button
-                      onClick={() => {
-                        navigator.clipboard.writeText(magicLink);
-                        alert('Lien copié !');
-                      }}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copier
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <PaymentLinkCard
+              magicLink={magicLink}
+              reservationId={reservation.id}
+              customerEmail={reservation.customer.email}
+              customerName={`${reservation.customer.firstName} ${reservation.customer.lastName}`}
+            />
           )}
         </TabsContent>
 
