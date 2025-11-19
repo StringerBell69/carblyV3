@@ -137,12 +137,12 @@ export default function CommunicationsPage() {
 
   const handleSendMessage = async () => {
     if (!selectedCustomer || !message) {
-      toast.error('Please select a customer and enter a message');
+      toast.error('Veuillez sélectionner un client et entrer un message');
       return;
     }
 
     if (commType === 'email' && !subject) {
-      toast.error('Please enter a subject for the email');
+      toast.error('Veuillez entrer un objet pour l\'email');
       return;
     }
 
@@ -160,17 +160,17 @@ export default function CommunicationsPage() {
       });
 
       if (res.ok) {
-        toast.success(`${commType === 'email' ? 'Email' : 'SMS'} sent successfully!`);
+        toast.success(`${commType === 'email' ? 'Email' : 'SMS'} envoyé avec succès !`);
         setSelectedCustomer('');
         setSubject('');
         setMessage('');
         fetchCommunications();
       } else {
         const error = await res.json();
-        toast.error(error.error || 'Failed to send message');
+        toast.error(error.error || 'Échec de l\'envoi du message');
       }
     } catch (error) {
-      toast.error('Failed to send message');
+      toast.error('Échec de l\'envoi du message');
     } finally {
       setLoading(false);
     }
@@ -178,7 +178,7 @@ export default function CommunicationsPage() {
 
   const handleSaveTemplate = async () => {
     if (!templateForm.name || !templateForm.message) {
-      toast.error('Please fill in all required fields');
+      toast.error('Veuillez remplir tous les champs requis');
       return;
     }
 
@@ -198,8 +198,8 @@ export default function CommunicationsPage() {
       if (res.ok) {
         toast.success(
           editingTemplate
-            ? 'Template updated successfully!'
-            : 'Template created successfully!'
+            ? 'Modèle mis à jour avec succès !'
+            : 'Modèle créé avec succès !'
         );
         setIsTemplateDialogOpen(false);
         setEditingTemplate(null);
@@ -207,28 +207,28 @@ export default function CommunicationsPage() {
         fetchTemplates();
       } else {
         const error = await res.json();
-        toast.error(error.error || 'Failed to save template');
+        toast.error(error.error || 'Échec de la sauvegarde du modèle');
       }
     } catch (error) {
-      toast.error('Failed to save template');
+      toast.error('Échec de la sauvegarde du modèle');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce modèle ?')) return;
 
     try {
       const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Template deleted successfully!');
+        toast.success('Modèle supprimé avec succès !');
         fetchTemplates();
       } else {
-        toast.error('Failed to delete template');
+        toast.error('Échec de la suppression du modèle');
       }
     } catch (error) {
-      toast.error('Failed to delete template');
+      toast.error('Échec de la suppression du modèle');
     }
   };
 
@@ -247,7 +247,7 @@ export default function CommunicationsPage() {
     setCommType(template.type);
     setSubject(template.subject || '');
     setMessage(template.message);
-    toast.success('Template loaded!');
+    toast.success('Modèle chargé !');
   };
 
   const stats = {
@@ -266,7 +266,7 @@ export default function CommunicationsPage() {
           Communications
         </h1>
         <p className="text-muted-foreground mt-1">
-          Send emails and SMS to your customers
+          Envoyer des emails et SMS à vos clients
         </p>
       </div>
 
@@ -275,7 +275,7 @@ export default function CommunicationsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{stats.totalSent}</div>
-            <p className="text-xs text-muted-foreground">Total Sent</p>
+            <p className="text-xs text-muted-foreground">Total envoyés</p>
           </CardContent>
         </Card>
         <Card>
@@ -283,7 +283,7 @@ export default function CommunicationsPage() {
             <div className="text-2xl font-bold text-green-600">
               {stats.delivered}
             </div>
-            <p className="text-xs text-muted-foreground">Delivered</p>
+            <p className="text-xs text-muted-foreground">Livrés</p>
           </CardContent>
         </Card>
         <Card>
@@ -295,7 +295,7 @@ export default function CommunicationsPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-purple-600">{stats.sms}</div>
-            <p className="text-xs text-muted-foreground">SMS Messages</p>
+            <p className="text-xs text-muted-foreground">Messages SMS</p>
           </CardContent>
         </Card>
       </div>
@@ -304,15 +304,15 @@ export default function CommunicationsPage() {
         <TabsList>
           <TabsTrigger value="compose" className="gap-2">
             <Send className="h-4 w-4" />
-            Compose
+            Composer
           </TabsTrigger>
           <TabsTrigger value="templates" className="gap-2">
             <Mail className="h-4 w-4" />
-            My Templates ({templates.length})
+            Mes modèles ({templates.length})
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <Inbox className="h-4 w-4" />
-            History
+            Historique
           </TabsTrigger>
         </TabsList>
 
@@ -321,14 +321,14 @@ export default function CommunicationsPage() {
             {/* Compose Form */}
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>Send Message</CardTitle>
+                <CardTitle>Envoyer un message</CardTitle>
                 <CardDescription>
-                  Send email or SMS to your customers
+                  Envoyer un email ou SMS à vos clients
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Message Type</Label>
+                  <Label>Type de message</Label>
                   <div className="flex gap-2">
                     <Button
                       variant={commType === 'email' ? 'default' : 'outline'}
@@ -350,13 +350,13 @@ export default function CommunicationsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="customer">Recipient</Label>
+                  <Label htmlFor="customer">Destinataire</Label>
                   <Select
                     value={selectedCustomer}
                     onValueChange={setSelectedCustomer}
                   >
                     <SelectTrigger id="customer">
-                      <SelectValue placeholder="Select a customer" />
+                      <SelectValue placeholder="Sélectionner un client" />
                     </SelectTrigger>
                     <SelectContent>
                       {customers.map((customer) => (
@@ -370,10 +370,10 @@ export default function CommunicationsPage() {
 
                 {commType === 'email' && (
                   <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
+                    <Label htmlFor="subject">Objet</Label>
                     <Input
                       id="subject"
-                      placeholder="Email subject..."
+                      placeholder="Objet de l'email..."
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                     />
@@ -386,8 +386,8 @@ export default function CommunicationsPage() {
                     id="message"
                     placeholder={
                       commType === 'email'
-                        ? 'Compose your email...'
-                        : 'Compose your SMS (max 160 characters)...'
+                        ? 'Composez votre email...'
+                        : 'Composez votre SMS (max 160 caractères)...'
                     }
                     rows={commType === 'email' ? 10 : 4}
                     value={message}
@@ -396,7 +396,7 @@ export default function CommunicationsPage() {
                   />
                   {commType === 'sms' && (
                     <p className="text-xs text-muted-foreground text-right">
-                      {message.length}/160 characters
+                      {message.length}/160 caractères
                     </p>
                   )}
                 </div>
@@ -408,7 +408,7 @@ export default function CommunicationsPage() {
                   disabled={loading}
                 >
                   <Send className="mr-2 h-4 w-4" />
-                  Send {commType === 'email' ? 'Email' : 'SMS'}
+                  Envoyer {commType === 'email' ? 'l\'email' : 'le SMS'}
                 </Button>
               </CardContent>
             </Card>
@@ -416,8 +416,8 @@ export default function CommunicationsPage() {
             {/* Quick Templates */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Access</CardTitle>
-                <CardDescription>Your saved templates</CardDescription>
+                <CardTitle>Accès rapide</CardTitle>
+                <CardDescription>Vos modèles enregistrés</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {templates.slice(0, 4).map((template) => (
@@ -444,7 +444,7 @@ export default function CommunicationsPage() {
                 ))}
                 {templates.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No templates yet. Create one in the Templates tab!
+                    Aucun modèle pour le moment. Créez-en un dans l'onglet Modèles !
                   </p>
                 )}
               </CardContent>
@@ -457,9 +457,9 @@ export default function CommunicationsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Message Templates</CardTitle>
+                  <CardTitle>Modèles de messages</CardTitle>
                   <CardDescription>
-                    Create and manage your message templates
+                    Créer et gérer vos modèles de messages
                   </CardDescription>
                 </div>
                 <Dialog
@@ -480,24 +480,24 @@ export default function CommunicationsPage() {
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
-                      New Template
+                      Nouveau modèle
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>
-                        {editingTemplate ? 'Edit Template' : 'Create Template'}
+                        {editingTemplate ? 'Modifier le modèle' : 'Créer un modèle'}
                       </DialogTitle>
                       <DialogDescription>
-                        Create a reusable message template for quick communication
+                        Créer un modèle de message réutilisable pour une communication rapide
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="template-name">Template Name</Label>
+                        <Label htmlFor="template-name">Nom du modèle</Label>
                         <Input
                           id="template-name"
-                          placeholder="e.g., Booking Confirmation"
+                          placeholder="ex: Confirmation de réservation"
                           value={templateForm.name}
                           onChange={(e) =>
                             setTemplateForm({ ...templateForm, name: e.target.value })
@@ -505,7 +505,7 @@ export default function CommunicationsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Message Type</Label>
+                        <Label>Type de message</Label>
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -537,10 +537,10 @@ export default function CommunicationsPage() {
                       </div>
                       {templateForm.type === 'email' && (
                         <div className="space-y-2">
-                          <Label htmlFor="template-subject">Subject</Label>
+                          <Label htmlFor="template-subject">Objet</Label>
                           <Input
                             id="template-subject"
-                            placeholder="Email subject..."
+                            placeholder="Objet de l'email..."
                             value={templateForm.subject}
                             onChange={(e) =>
                               setTemplateForm({
@@ -555,7 +555,7 @@ export default function CommunicationsPage() {
                         <Label htmlFor="template-message">Message</Label>
                         <Textarea
                           id="template-message"
-                          placeholder="Your message template..."
+                          placeholder="Votre modèle de message..."
                           rows={8}
                           value={templateForm.message}
                           onChange={(e) =>
@@ -568,7 +568,7 @@ export default function CommunicationsPage() {
                         />
                         {templateForm.type === 'sms' && (
                           <p className="text-xs text-muted-foreground text-right">
-                            {templateForm.message.length}/160 characters
+                            {templateForm.message.length}/160 caractères
                           </p>
                         )}
                       </div>
@@ -578,10 +578,10 @@ export default function CommunicationsPage() {
                         variant="outline"
                         onClick={() => setIsTemplateDialogOpen(false)}
                       >
-                        Cancel
+                        Annuler
                       </Button>
                       <Button onClick={handleSaveTemplate} disabled={loading}>
-                        {editingTemplate ? 'Update' : 'Create'} Template
+                        {editingTemplate ? 'Mettre à jour' : 'Créer'} le modèle
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -593,9 +593,9 @@ export default function CommunicationsPage() {
                 {templates.length === 0 ? (
                   <div className="text-center py-12">
                     <Mail className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold mb-2">No templates yet</h3>
+                    <h3 className="text-xl font-semibold mb-2">Aucun modèle pour le moment</h3>
                     <p className="text-muted-foreground mb-4">
-                      Create your first message template to get started
+                      Créez votre premier modèle de message pour commencer
                     </p>
                   </div>
                 ) : (
@@ -632,20 +632,20 @@ export default function CommunicationsPage() {
                               onClick={() => handleUseTemplate(template)}
                             >
                               <Send className="h-4 w-4 mr-2" />
-                              Use Template
+                              Utiliser le modèle
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleEditTemplate(template)}
                             >
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit
+                              Modifier
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeleteTemplate(template.id)}
                               className="text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
+                              Supprimer
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -661,8 +661,8 @@ export default function CommunicationsPage() {
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <CardTitle>Communication History</CardTitle>
-              <CardDescription>All sent messages and their status</CardDescription>
+              <CardTitle>Historique des communications</CardTitle>
+              <CardDescription>Tous les messages envoyés et leur statut</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -670,10 +670,10 @@ export default function CommunicationsPage() {
                   <div className="text-center py-12">
                     <Inbox className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-xl font-semibold mb-2">
-                      No messages sent yet
+                      Aucun message envoyé pour le moment
                     </h3>
                     <p className="text-muted-foreground">
-                      Start communicating with your customers!
+                      Commencez à communiquer avec vos clients !
                     </p>
                   </div>
                 ) : (
@@ -701,7 +701,7 @@ export default function CommunicationsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">
-                              {new Date(comm.createdAt).toLocaleDateString('en-US', {
+                              {new Date(comm.createdAt).toLocaleDateString('fr-FR', {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric',
@@ -718,7 +718,7 @@ export default function CommunicationsPage() {
                                     : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400'
                               }
                             >
-                              {comm.status}
+                              {comm.status === 'delivered' ? 'Livré' : comm.status === 'sent' ? 'Envoyé' : comm.status === 'pending' ? 'En attente' : 'Échec'}
                             </Badge>
                           </div>
                         </div>

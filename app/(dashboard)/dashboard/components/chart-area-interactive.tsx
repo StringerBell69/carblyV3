@@ -40,7 +40,7 @@ interface ChartAreaInteractiveProps {
 }
 
 const chartConfig = {
-  revenue: { label: "Revenue", color: "var(--primary)" },
+  revenue: { label: "Chiffre d'affaires", color: "var(--primary)" },
 } satisfies ChartConfig
 
 export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
@@ -55,10 +55,10 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
   const chartData = data.map((item) => {
     const [year, month] = item.month.split('-')
     const date = new Date(parseInt(year), parseInt(month) - 1)
-    const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    const monthName = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
     return {
       month: monthName,
-      revenue: item.revenue / 100, // Convert cents to dollars
+      revenue: item.revenue / 100, // Convert cents to euros
       date: item.month,
     }
   })
@@ -68,12 +68,12 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Total Revenue</CardTitle>
+        <CardTitle>Chiffre d'affaires total</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Revenue for the last {timeRange} months
+            Revenus des {timeRange} derniers mois
           </span>
-          <span className="@[540px]/card:hidden">Last {timeRange} months</span>
+          <span className="@[540px]/card:hidden">{timeRange} derniers mois</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup
@@ -85,32 +85,32 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
             className="hidden @[540px]/card:flex"
             variant="outline"
           >
-            <ToggleGroupItem value="3" aria-label="Last 3 months">
+            <ToggleGroupItem value="3" aria-label="3 derniers mois">
               3M
             </ToggleGroupItem>
-            <ToggleGroupItem value="6" aria-label="Last 6 months">
+            <ToggleGroupItem value="6" aria-label="6 derniers mois">
               6M
             </ToggleGroupItem>
-            <ToggleGroupItem value="12" aria-label="Last 12 months">
+            <ToggleGroupItem value="12" aria-label="12 derniers mois">
               12M
             </ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
-              className="w-[160px] rounded-lg @[540px]/card:hidden"
-              aria-label="Select time range"
+              className="w-[180px] rounded-lg @[540px]/card:hidden"
+              aria-label="Sélectionner la période"
             >
-              <SelectValue placeholder="Last 3 months" />
+              <SelectValue placeholder="3 derniers mois" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="3" className="rounded-lg">
-                Last 3 months
+                3 derniers mois
               </SelectItem>
               <SelectItem value="6" className="rounded-lg">
-                Last 6 months
+                6 derniers mois
               </SelectItem>
               <SelectItem value="12" className="rounded-lg">
-                Last 12 months
+                12 derniers mois
               </SelectItem>
             </SelectContent>
           </Select>
@@ -161,7 +161,7 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
                   formatter={(value) => (
                     <div className="flex items-center gap-2">
                       <div className="font-mono font-medium tabular-nums">
-                        ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'EUR' })}
                       </div>
                     </div>
                   )}
