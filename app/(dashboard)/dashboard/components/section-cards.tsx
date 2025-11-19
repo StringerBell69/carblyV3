@@ -35,7 +35,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Chiffre d'affaires</CardDescription>
+          <CardDescription>Chiffre d'affaires du mois</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {formatCurrency(stats.revenue)}
           </CardTitle>
@@ -48,11 +48,11 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {revenueTrend >= 0 ? 'Tendance à la hausse ce mois-ci' : 'Tendance à la baisse ce mois-ci'}{' '}
+            {revenueTrend >= 0 ? `+${revenueTrend.toFixed(1)}% vs mois dernier` : `${revenueTrend.toFixed(1)}% vs mois dernier`}{' '}
             {revenueTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            Revenus des 6 derniers mois
+            Comparaison à la même période
           </div>
         </CardFooter>
       </Card>
@@ -72,7 +72,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {reservationsTrend >= 0 ? 'Forte croissance des réservations' : 'Baisse des réservations'}{' '}
+            {reservationsTrend >= 0 ? `+${reservationsTrend.toFixed(1)}% de nouvelles réservations` : `${reservationsTrend.toFixed(1)}% de nouvelles réservations`}{' '}
             {reservationsTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
@@ -90,13 +90,13 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
           <CardAction>
             <Badge variant="outline">
               {vehiclesTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {vehiclesTrend >= 0 ? '+' : ''}{vehiclesTrend}%
+              {vehiclesTrend >= 0 ? '+' : ''}{Math.abs(vehiclesTrend).toFixed(1)}pts
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {vehiclesTrend >= 0 ? 'Disponibilité accrue' : 'Forte utilisation'}{' '}
+            {vehiclesTrend >= 0 ? 'Disponibilité en hausse' : 'Forte demande'}{' '}
             {vehiclesTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
@@ -114,17 +114,17 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
           <CardAction>
             <Badge variant="outline">
               {occupancyTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {occupancyTrend >= 0 ? '+' : ''}{occupancyTrend}%
+              {occupancyTrend >= 0 ? '+' : ''}{Math.abs(occupancyTrend).toFixed(1)}pts
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {occupancyTrend >= 0 ? 'Augmentation constante des performances' : 'Baisse des performances'}{' '}
+            {occupancyTrend >= 0 ? 'Occupation en hausse' : 'Occupation en baisse'}{' '}
             {occupancyTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            {occupancyTrend >= 0 ? 'Objectifs dépassés' : 'En dessous des objectifs'}
+            {occupancyTrend >= 0 ? `+${occupancyTrend.toFixed(1)} points vs mois dernier` : `${occupancyTrend.toFixed(1)} points vs mois dernier`}
           </div>
         </CardFooter>
       </Card>

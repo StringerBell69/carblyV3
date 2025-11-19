@@ -63,7 +63,23 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
     }
   })
 
-  const filteredData = chartData.slice(-parseInt(timeRange))
+  const filteredData = timeRange === "all" ? chartData : chartData.slice(-parseInt(timeRange))
+
+  // Descriptions selon la période
+  const getDescription = () => {
+    if (timeRange === "all") {
+      return {
+        long: "Revenus depuis le début",
+        short: "Tout le temps"
+      }
+    }
+    return {
+      long: `Revenus des ${timeRange} derniers mois`,
+      short: `${timeRange} derniers mois`
+    }
+  }
+
+  const description = getDescription()
 
   return (
     <Card className="@container/card">
@@ -71,9 +87,9 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
         <CardTitle>Chiffre d'affaires total</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Revenus des {timeRange} derniers mois
+            {description.long}
           </span>
-          <span className="@[540px]/card:hidden">{timeRange} derniers mois</span>
+          <span className="@[540px]/card:hidden">{description.short}</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup
@@ -94,6 +110,9 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
             <ToggleGroupItem value="12" aria-label="12 derniers mois">
               12M
             </ToggleGroupItem>
+            <ToggleGroupItem value="all" aria-label="Tout le temps">
+              Tout
+            </ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
@@ -112,72 +131,85 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
               <SelectItem value="12" className="rounded-lg">
                 12 derniers mois
               </SelectItem>
+              <SelectItem value="all" className="rounded-lg">
+                Tout le temps
+              </SelectItem>
             </SelectContent>
           </Select>
         </CardAction>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
-          <AreaChart
-            accessibilityLayer
-            data={filteredData}
-            margin={{
-              left: 0,
-              right: 10,
-              top: 10,
-            }}
-          >
-            <defs>
-              <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-revenue)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-revenue)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="month"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-              tickFormatter={(value) => {
-                return value.split(' ')[0] // Just show month, not year
+        {filteredData.length === 0 ? (
+          <div className="flex h-[250px] items-center justify-center">
+            <div className="text-center">
+              <p className="text-muted-foreground text-sm">
+                Aucune donnée de revenu disponible pour cette période
+              </p>
+            </div>
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+            <AreaChart
+              accessibilityLayer
+              data={filteredData}
+              margin={{
+                left: 0,
+                right: 10,
+                top: 10,
               }}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  indicator="line"
-                  labelFormatter={(value) => value}
-                  formatter={(value) => (
-                    <div className="flex items-center gap-2">
-                      <div className="font-mono font-medium tabular-nums">
-                        {Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'EUR' })}
+            >
+              <defs>
+                <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-revenue)"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-revenue)"
+                    stopOpacity={0.1}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  return value.split(' ')[0] // Just show month, not year
+                }}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    indicator="line"
+                    labelFormatter={(value) => value}
+                    formatter={(value) => (
+                      <div className="flex items-center gap-2">
+                        <div className="font-mono font-medium tabular-nums">
+                          {Number(value).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, style: 'currency', currency: 'EUR' })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                />
-              }
-            />
-            <Area
-              dataKey="revenue"
-              type="monotone"
-              fill="url(#fillRevenue)"
-              fillOpacity={0.4}
-              stroke="var(--color-revenue)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ChartContainer>
+                    )}
+                  />
+                }
+              />
+              <Area
+                dataKey="revenue"
+                type="monotone"
+                fill="url(#fillRevenue)"
+                fillOpacity={0.4}
+                stroke="var(--color-revenue)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )
