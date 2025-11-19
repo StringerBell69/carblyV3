@@ -9,7 +9,9 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 30,
-    borderBottom: '2px solid #3B82F6',
+    borderBottomWidth: 2,
+    borderBottomColor: '#3B82F6',
+    borderBottomStyle: 'solid' as const,
     paddingBottom: 10,
   },
   title: {
@@ -57,7 +59,9 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     padding: 8,
-    borderBottom: '1px solid #E5E7EB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    borderBottomStyle: 'solid' as const,
   },
   tableCol: {
     flex: 1,

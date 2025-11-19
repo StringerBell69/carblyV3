@@ -1,5 +1,6 @@
 'use server';
 
+import React from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { ContractPDF } from './contract';
 import { uploadToR2 } from '../r2';
@@ -32,13 +33,13 @@ export async function generateContractPDF(reservationId: string): Promise<{
 
     // Generate PDF
     const pdfBuffer = await renderToBuffer(
-      <ContractPDF
-        reservation={reservation}
-        vehicle={reservation.vehicle}
-        customer={reservation.customer}
-        team={reservation.team}
-        organization={reservation.team.organization}
-      />
+      React.createElement(ContractPDF, {
+        reservation: reservation as any,
+        vehicle: reservation.vehicle as any,
+        customer: reservation.customer as any,
+        team: reservation.team as any,
+        organization: reservation.team.organization as any,
+      }) as any
     );
 
     // Upload to R2

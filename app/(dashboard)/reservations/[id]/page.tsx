@@ -38,9 +38,10 @@ const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destruc
 export default async function ReservationDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const result = await getReservation(params.id);
+  const { id } = await params;
+  const result = await getReservation(id);
 
   if ('error' in result) {
     notFound();
