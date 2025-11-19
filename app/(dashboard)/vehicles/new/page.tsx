@@ -5,11 +5,23 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertCircle,
+  Car,
+  Calendar,
+  CreditCard,
+  Fuel,
+  Settings,
+  Users,
+  Gauge,
+  Hash,
+  Plus
+} from 'lucide-react';
 import { createVehicle } from '../actions';
 
 export default function NewVehiclePage() {
@@ -89,12 +101,19 @@ export default function NewVehiclePage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Informations générales</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              Informations générales
+            </CardTitle>
+            <CardDescription>
+              Renseignez les informations de base du véhicule
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="brand">
+                <Label htmlFor="brand" className="flex items-center gap-2">
+                  <Car className="h-4 w-4" />
                   Marque *
                 </Label>
                 <Input
@@ -104,10 +123,14 @@ export default function NewVehiclePage() {
                   placeholder="Ex: Renault"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Fabricant du véhicule
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="model">
+                <Label htmlFor="model" className="flex items-center gap-2">
+                  <Car className="h-4 w-4" />
                   Modèle *
                 </Label>
                 <Input
@@ -117,12 +140,18 @@ export default function NewVehiclePage() {
                   placeholder="Ex: Clio"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Nom du modèle
+                </p>
               </div>
             </div>
 
+            <Separator />
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="year">
+                <Label htmlFor="year" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
                   Année
                 </Label>
                 <Input
@@ -134,10 +163,14 @@ export default function NewVehiclePage() {
                   min="1900"
                   max={new Date().getFullYear() + 1}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Année de mise en circulation
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="plate">
+                <Label htmlFor="plate" className="flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
                   Plaque d'immatriculation *
                 </Label>
                 <Input
@@ -147,11 +180,15 @@ export default function NewVehiclePage() {
                   placeholder="Ex: AB-123-CD"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Numéro d'immatriculation officiel
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="vin">
+              <Label htmlFor="vin" className="flex items-center gap-2">
+                <Hash className="h-4 w-4" />
                 Numéro VIN
               </Label>
               <Input
@@ -161,18 +198,28 @@ export default function NewVehiclePage() {
                 placeholder="Ex: 1HGBH41JXMN109186"
                 maxLength={17}
               />
+              <p className="text-xs text-muted-foreground">
+                Numéro d'identification du véhicule (17 caractères)
+              </p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Caractéristiques techniques</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Caractéristiques techniques
+            </CardTitle>
+            <CardDescription>
+              Spécifications et équipements du véhicule
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fuelType">
+                <Label htmlFor="fuelType" className="flex items-center gap-2">
+                  <Fuel className="h-4 w-4" />
                   Type de carburant
                 </Label>
                 <Select value={formData.fuelType} onValueChange={(v) => handleChange('fuelType', v)}>
@@ -186,10 +233,14 @@ export default function NewVehiclePage() {
                     <SelectItem value="hybrid">Hybride</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Type d'énergie utilisée
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="transmission">
+                <Label htmlFor="transmission" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
                   Transmission
                 </Label>
                 <Select value={formData.transmission} onValueChange={(v) => handleChange('transmission', v)}>
@@ -201,12 +252,18 @@ export default function NewVehiclePage() {
                     <SelectItem value="automatic">Automatique</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Type de boîte de vitesses
+                </p>
               </div>
             </div>
 
+            <Separator />
+
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="seats">
+                <Label htmlFor="seats" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
                   Nombre de places
                 </Label>
                 <Input
@@ -218,10 +275,14 @@ export default function NewVehiclePage() {
                   min="1"
                   max="50"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Capacité totale de passagers
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="mileage">
+                <Label htmlFor="mileage" className="flex items-center gap-2">
+                  <Gauge className="h-4 w-4" />
                   Kilométrage
                 </Label>
                 <Input
@@ -232,6 +293,9 @@ export default function NewVehiclePage() {
                   placeholder="Ex: 45000"
                   min="0"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Distance parcourue en kilomètres
+                </p>
               </div>
             </div>
           </CardContent>
@@ -239,12 +303,19 @@ export default function NewVehiclePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tarification</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Tarification
+            </CardTitle>
+            <CardDescription>
+              Définissez les tarifs de location du véhicule
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="dailyRate">
+                <Label htmlFor="dailyRate" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
                   Tarif journalier (€) *
                 </Label>
                 <Input
@@ -257,10 +328,14 @@ export default function NewVehiclePage() {
                   required
                   min="0"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Prix par jour de location
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="depositAmount">
+                <Label htmlFor="depositAmount" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
                   Montant de la caution (€)
                 </Label>
                 <Input
@@ -272,6 +347,9 @@ export default function NewVehiclePage() {
                   placeholder="Ex: 500.00"
                   min="0"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Caution demandée lors de la location
+                </p>
               </div>
             </div>
           </CardContent>
@@ -287,7 +365,14 @@ export default function NewVehiclePage() {
             Annuler
           </Button>
           <Button type="submit" disabled={loading} className="flex-1">
-            {loading ? 'Création...' : 'Créer le véhicule'}
+            {loading ? (
+              'Création...'
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Créer le véhicule
+              </>
+            )}
           </Button>
         </div>
       </form>

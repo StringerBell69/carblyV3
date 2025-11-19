@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
 
 export default function ConnectRefreshPage() {
@@ -43,18 +43,27 @@ export default function ConnectRefreshPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            <div className="text-5xl">⚠️</div>
-            <h2 className="text-xl font-semibold">Configuration interrompue</h2>
-            <p className="text-gray-600">
-              La configuration de votre compte de paiement n'a pas été terminée.
-            </p>
-            <p className="text-sm text-gray-500">
-              Vous devez compléter cette étape pour accepter les paiements de vos clients.
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+      <Card className="w-full max-w-md border-yellow-200">
+        <CardContent className="pt-8">
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-yellow-100 p-3">
+                <AlertCircle className="w-10 h-10 text-yellow-600" />
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Configuration interrompue
+              </h2>
+              <p className="text-gray-600 mb-3">
+                La configuration de votre compte de paiement n'a pas été terminée.
+              </p>
+              <p className="text-sm text-gray-500">
+                Vous devez compléter cette étape pour accepter les paiements de vos clients.
+              </p>
+            </div>
 
             {error && (
               <Alert variant="destructive">
@@ -63,13 +72,20 @@ export default function ConnectRefreshPage() {
               </Alert>
             )}
 
-            <div className="space-y-2 pt-4">
+            <div className="space-y-3 pt-2">
               <Button
                 onClick={handleRetry}
                 disabled={loading || !teamId}
                 className="w-full"
               >
-                {loading ? 'Redirection...' : 'Reprendre la configuration'}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Redirection...
+                  </div>
+                ) : (
+                  'Reprendre la configuration'
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -80,7 +96,7 @@ export default function ConnectRefreshPage() {
               </Button>
             </div>
 
-            <p className="text-xs text-gray-500 pt-2">
+            <p className="text-xs text-gray-500">
               Vous pouvez également compléter cette étape depuis les paramètres
             </p>
           </div>

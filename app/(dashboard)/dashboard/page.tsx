@@ -1,7 +1,17 @@
 import { getDashboardStats, getRecentReservations } from './actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import {
+  DollarSign,
+  MapPin,
+  TrendingUp,
+  Car,
+  Plus,
+  Users,
+} from 'lucide-react';
 
 export default async function DashboardPage() {
   const [stats, recentData] = await Promise.all([
@@ -17,14 +27,14 @@ export default async function DashboardPage() {
     );
   }
 
-  const reservationStatusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    pending_payment: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-blue-100 text-blue-800',
-    confirmed: 'bg-green-100 text-green-800',
-    in_progress: 'bg-purple-100 text-purple-800',
-    completed: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-red-100 text-red-800',
+  const reservationStatusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'warning' | 'success'> = {
+    draft: 'outline',
+    pending_payment: 'warning',
+    paid: 'secondary',
+    confirmed: 'success',
+    in_progress: 'secondary',
+    completed: 'secondary',
+    cancelled: 'destructive',
   };
 
   const reservationStatusLabels: Record<string, string> = {
@@ -51,11 +61,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">CA du mois</CardTitle>
-            <span className="text-2xl">💰</span>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.revenue)}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Revenus mensuels
             </p>
           </CardContent>
@@ -64,11 +74,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Locations en cours</CardTitle>
-            <span className="text-2xl">📍</span>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeReservations}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {stats.upcomingReservations} à venir
             </p>
           </CardContent>
@@ -77,7 +87,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taux d'occupation</CardTitle>
-            <span className="text-2xl">📊</span>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
@@ -93,61 +103,77 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Véhicules disponibles</CardTitle>
-            <span className="text-2xl">🚗</span>
+            <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.availableVehicles}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               sur {stats.totalVehicles} total
             </p>
           </CardContent>
         </Card>
       </div>
 
+      <Separator />
+
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/reservations/new">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-dashed border-primary">
+          <Card className="hover:shadow-lg transition-all cursor-pointer border-2 border-dashed border-primary hover:border-primary/80">
             <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-4xl">➕</div>
-                <h3 className="font-semibold">Nouvelle réservation</h3>
-                <p className="text-sm text-gray-600">
-                  Créer une location pour un client
-                </p>
+              <div className="text-center space-y-3">
+                <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Nouvelle réservation</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Créer une location pour un client
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/vehicles/new">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50">
             <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-4xl">🚙</div>
-                <h3 className="font-semibold">Ajouter un véhicule</h3>
-                <p className="text-sm text-gray-600">
-                  Ajouter un véhicule à votre flotte
-                </p>
+              <div className="text-center space-y-3">
+                <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Car className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Ajouter un véhicule</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Ajouter un véhicule à votre flotte
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
 
         <Link href="/customers">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50">
             <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-4xl">👥</div>
-                <h3 className="font-semibold">Voir les clients</h3>
-                <p className="text-sm text-gray-600">
-                  Gérer votre base clients
-                </p>
+              <div className="text-center space-y-3">
+                <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Voir les clients</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Gérer votre base clients
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </Link>
       </div>
+
+      <Separator />
 
       {/* Recent Reservations */}
       <Card>
@@ -184,22 +210,18 @@ export default async function DashboardPage() {
                         <h4 className="font-semibold">
                           {reservation.vehicle.brand} {reservation.vehicle.model}
                         </h4>
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            reservationStatusColors[reservation.status]
-                          }`}
-                        >
+                        <Badge variant={reservationStatusVariants[reservation.status]}>
                           {reservationStatusLabels[reservation.status]}
-                        </span>
+                        </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {reservation.customer.firstName} {reservation.customer.lastName} •{' '}
                         {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(parseFloat(reservation.totalAmount))}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(reservation.createdAt)}
                       </p>
                     </div>

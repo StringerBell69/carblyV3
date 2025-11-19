@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Building2, Users, CreditCard, Check } from 'lucide-react';
 import { createOrganization, createTeam, createStripeCheckoutSession } from './actions';
 
 type Plan = 'starter' | 'pro' | 'business';
@@ -155,19 +155,67 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Étape {step} sur 4</span>
-            <span className="text-sm text-gray-500">{Math.round((step / 4) * 100)}%</span>
+        {/* Visual Stepper */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-8">
+            {[
+              { num: 1, label: 'Organisation', icon: Building2 },
+              { num: 2, label: 'Agence', icon: Users },
+              { num: 3, label: 'Plan', icon: CreditCard },
+              { num: 4, label: 'Paiement', icon: Check },
+            ].map((s, idx, arr) => {
+              const StepIcon = s.icon;
+              const isCompleted = step > s.num;
+              const isActive = step === s.num;
+
+              return (
+                <div key={s.num} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                        isActive
+                          ? 'bg-primary text-white shadow-lg scale-110'
+                          : isCompleted
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white text-gray-400 border-2 border-gray-200'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <StepIcon className="w-5 h-5" />
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-medium text-center ${
+                        isActive
+                          ? 'text-primary'
+                          : isCompleted
+                          ? 'text-green-600'
+                          : 'text-gray-500'
+                      }`}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  {idx < arr.length - 1 && (
+                    <div
+                      className={`h-1 flex-1 mx-2 rounded transition-all ${
+                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                      }`}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(step / 4) * 100}%` }}
-            />
+
+          {/* Progress percentage */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-gray-700">Étape {step} sur 4</span>
+            <span className="text-gray-500">{Math.round((step / 4) * 100)}%</span>
           </div>
         </div>
 

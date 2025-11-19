@@ -3,6 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { checkTeamConnectStatus } from '../connect-actions';
 
 function ConnectReturnContent() {
@@ -52,41 +54,61 @@ function ConnectReturnContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardContent className="pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+      <Card className={`w-full max-w-md ${status === 'error' ? 'border-red-200' : status === 'success' ? 'border-green-200' : ''}`}>
+        <CardContent className="pt-8">
           {status === 'checking' && (
-            <div className="text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-              <h2 className="text-xl font-semibold">Vérification de votre compte...</h2>
-              <p className="text-gray-600">Veuillez patienter</p>
+            <div className="text-center space-y-6">
+              <div className="flex justify-center">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Vérification de votre compte...
+                </h2>
+                <p className="text-gray-500">Veuillez patienter</p>
+              </div>
             </div>
           )}
 
           {status === 'success' && (
-            <div className="text-center space-y-4">
-              <div className="text-5xl">✅</div>
-              <h2 className="text-xl font-semibold">Configuration terminée!</h2>
-              <p className="text-gray-600">
-                Votre compte de paiement est maintenant configuré. Redirection vers le tableau de bord...
-              </p>
+            <div className="text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="rounded-full bg-green-100 p-3">
+                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Configuration terminée !
+                </h2>
+                <p className="text-gray-600">
+                  Votre compte de paiement est maintenant configuré. Redirection vers le tableau de bord...
+                </p>
+              </div>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="text-center space-y-4">
-              <div className="text-5xl">❌</div>
-              <h2 className="text-xl font-semibold">Erreur</h2>
-              <p className="text-gray-600">{error}</p>
-              {teamId && (
-                <p className="text-xs text-gray-500">Team ID: {teamId}</p>
-              )}
-              <button
+            <div className="text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="rounded-full bg-red-100 p-3">
+                  <AlertCircle className="w-10 h-10 text-red-600" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur</h2>
+                <p className="text-gray-600">{error}</p>
+                {teamId && (
+                  <p className="text-xs text-gray-500 mt-2">Team ID: {teamId}</p>
+                )}
+              </div>
+              <Button
                 onClick={() => router.push('/dashboard')}
-                className="text-primary hover:underline mt-4"
+                className="w-full"
               >
                 Continuer vers le tableau de bord
-              </button>
+              </Button>
             </div>
           )}
         </CardContent>
