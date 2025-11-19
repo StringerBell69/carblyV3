@@ -131,10 +131,8 @@ export async function getMonthlyRevenue() {
     if (!teamId) {
       return { error: 'Unauthorized' };
     }
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    // Get revenue by month for the last 6 months
+    // Get all revenue by month (no time limit) - ordered by month
     const monthlyData = await db
       .select({
         month: sql<string>`TO_CHAR(${payments.paidAt}, 'YYYY-MM')`,
@@ -145,7 +143,6 @@ export async function getMonthlyRevenue() {
       .where(
         and(
           eq(reservations.teamId, teamId),
-          gte(payments.paidAt, sixMonthsAgo),
           eq(payments.status, 'succeeded')
         )
       )
