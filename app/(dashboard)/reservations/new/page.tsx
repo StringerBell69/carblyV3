@@ -139,13 +139,11 @@ export default function NewReservationPage() {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      const rental = calculateRentalPrice({
-        dailyRate: parseFloat(selectedVehicle.dailyRate),
-        startDate: start,
-        endDate: end,
-        depositAmount: (parseFloat(selectedVehicle.dailyRate) * calculateDays(start, end) * parseFloat(depositPercent)) / 100,
-        insuranceAmount: includeInsurance ? 5 * calculateDays(start, end) : 0,
-      });
+      const rental = calculateRentalPrice(
+        parseFloat(selectedVehicle.dailyRate),
+        start,
+        end
+      );
 
       const result = await createReservation({
         vehicleId: selectedVehicleId,
@@ -588,7 +586,7 @@ export default function NewReservationPage() {
                 <Checkbox
                   id="insurance"
                   checked={includeInsurance}
-                  onCheckedChange={setIncludeInsurance}
+                  onCheckedChange={(checked) => setIncludeInsurance(checked === true)}
                 />
                 <Label htmlFor="insurance" className="flex items-center gap-2 text-sm font-normal cursor-pointer flex-1">
                   <Shield className="h-4 w-4 text-muted-foreground" />
