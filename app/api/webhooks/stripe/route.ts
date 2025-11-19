@@ -3,6 +3,8 @@ import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 import { teams, reservations, payments } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
+import { generateContractPDF } from '@/lib/pdf/generate';
+import { sendPaymentConfirmedEmail } from '@/lib/resend';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -78,7 +80,41 @@ export async function POST(req: NextRequest) {
 
             console.log('[Stripe Webhook] Reservation paid:', metadata.reservationId);
 
-            // TODO: Generate contract and send to Yousign
+            // Generate contract PDF
+            const contractResult = await generateContractPDF(metadata.reservationId);
+
+            if (contractResult.error) {
+              console.error('[Stripe Webhook] Failed to generate contract:', contractResult.error);
+            } else {
+              console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
+            }
+
+            // Get full reservation data with relations for email
+            const fullReservation = await db.query.reservations.findFirst({
+              where: eq(reservations.id, metadata.reservationId),
+              with: {
+                vehicle: true,
+                customer: true,
+              },
+            });
+
+            if (fullReservation) {
+              // Send confirmation email with contract link
+              try {
+                await sendPaymentConfirmedEmail({
+                  to: fullReservation.customer.email,
+                  customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+                  vehicle: {
+                    brand: fullReservation.vehicle.brand,
+                    model: fullReservation.vehicle.model,
+                  },
+                  yousignLink: contractResult.pdfUrl, // Use PDF URL as contract link for now
+                });
+                console.log('[Stripe Webhook] Confirmation email sent to:', fullReservation.customer.email);
+              } catch (emailError) {
+                console.error('[Stripe Webhook] Failed to send confirmation email:', emailError);
+              }
+            }
           }
         }
 
