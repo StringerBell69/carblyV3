@@ -207,8 +207,8 @@ export async function createReservationCheckoutSession({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: 'Frais de service Carbly',
-            description: 'Frais de plateforme (0,99€)',
+            name: 'Frais Carbly',
+            description: '0,99€ + frais bancaires',
           },
           unit_amount: platformFee,
         },
@@ -238,6 +238,11 @@ export async function createReservationCheckoutSession({
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
+      custom_text: {
+        submit: {
+          message: 'Paiement sécurisé géré par Carbly',
+        },
+      },
     });
 
     return { url: session.url || undefined, sessionId: session.id };
