@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Car, Calendar, User, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function PublicReservationPage() {
@@ -65,21 +65,32 @@ export default function PublicReservationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8 flex flex-col items-center justify-center">
+            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+            <p className="text-gray-600 text-center">Chargement de votre réservation...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error && !reservation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+        <Card className="w-full max-w-md border-red-200">
+          <CardContent className="pt-8">
             <div className="text-center space-y-4">
-              <div className="text-4xl">❌</div>
-              <h2 className="text-xl font-semibold">Erreur</h2>
-              <p className="text-gray-600">{error}</p>
+              <div className="flex justify-center">
+                <div className="rounded-full bg-red-100 p-3">
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur</h2>
+                <p className="text-gray-600">{error}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -89,15 +100,23 @@ export default function PublicReservationPage() {
 
   if (reservation.status !== 'pending_payment' && reservation.status !== 'draft') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
+        <Card className="w-full max-w-md border-green-200">
+          <CardContent className="pt-8">
             <div className="text-center space-y-4">
-              <div className="text-4xl">✅</div>
-              <h2 className="text-xl font-semibold">Réservation déjà payée</h2>
-              <p className="text-gray-600">
-                Votre réservation a déjà été confirmée et payée.
-              </p>
+              <div className="flex justify-center">
+                <div className="rounded-full bg-green-100 p-3">
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Réservation déjà payée
+                </h2>
+                <p className="text-gray-600">
+                  Votre réservation a déjà été confirmée et payée.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -106,11 +125,11 @@ export default function PublicReservationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Confirmer votre réservation</h1>
-          <p className="text-gray-600">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Confirmer votre réservation</h1>
+          <p className="text-gray-600 text-lg">
             Finalisez le paiement pour valider votre location
           </p>
         </div>
@@ -124,35 +143,59 @@ export default function PublicReservationPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Détails de la réservation</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              Détails de la réservation
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-600">Véhicule</p>
-                <p className="font-semibold text-lg">
-                  {reservation.vehicle.brand} {reservation.vehicle.model}
-                </p>
-                <p className="text-sm text-gray-600">{reservation.vehicle.plate}</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Date de début</p>
-                  <p className="font-medium">{formatDate(reservation.startDate)}</p>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {/* Vehicle */}
+              <div className="flex items-start gap-3 pb-4 border-b">
+                <div className="rounded-full bg-blue-100 p-2">
+                  <Car className="w-5 h-5 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Date de fin</p>
-                  <p className="font-medium">{formatDate(reservation.endDate)}</p>
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1">Véhicule</p>
+                  <p className="font-semibold text-lg text-gray-900">
+                    {reservation.vehicle.brand} {reservation.vehicle.model}
+                  </p>
+                  <p className="text-sm text-gray-600 font-mono">{reservation.vehicle.plate}</p>
                 </div>
               </div>
 
-              <div>
-                <p className="text-sm text-gray-600">Client</p>
-                <p className="font-medium">
-                  {reservation.customer.firstName} {reservation.customer.lastName}
-                </p>
-                <p className="text-sm text-gray-600">{reservation.customer.email}</p>
+              {/* Dates */}
+              <div className="flex items-start gap-3 pb-4 border-b">
+                <div className="rounded-full bg-orange-100 p-2">
+                  <Calendar className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Période de location</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Du:</span>
+                      <p className="font-medium text-gray-900">{formatDate(reservation.startDate)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">Au:</span>
+                      <p className="font-medium text-gray-900">{formatDate(reservation.endDate)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-purple-100 p-2">
+                  <User className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-1">Client</p>
+                  <p className="font-semibold text-gray-900">
+                    {reservation.customer.firstName} {reservation.customer.lastName}
+                  </p>
+                  <p className="text-sm text-gray-600">{reservation.customer.email}</p>
+                </div>
               </div>
             </div>
 
@@ -239,7 +282,14 @@ export default function PublicReservationPage() {
               className="w-full"
               size="lg"
             >
-              {paying ? 'Redirection...' : `Payer ${formatCurrency(parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99)}`}
+              {paying ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Redirection vers le paiement...
+                </div>
+              ) : (
+                `Payer ${formatCurrency(parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99)}`
+              )}
             </Button>
           </CardContent>
         </Card>

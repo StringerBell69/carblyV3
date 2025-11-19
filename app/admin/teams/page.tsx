@@ -3,7 +3,16 @@ import { teams, vehicles } from '@/drizzle/schema';
 import { eq, count } from 'drizzle-orm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { Users, Building2, Car, Calendar, Shield, Eye } from 'lucide-react';
 
 export default async function AdminTeamsPage() {
   const allTeams = await db.query.teams.findMany({
@@ -50,8 +59,11 @@ export default async function AdminTeamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Teams (Agences)</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Users className="h-8 w-8" />
+          Teams (Agences)
+        </h1>
+        <p className="text-muted-foreground mt-1">
           {allTeams.length} agence(s) totale(s)
         </p>
       </div>
@@ -61,49 +73,66 @@ export default async function AdminTeamsPage() {
           <CardTitle>Toutes les agences</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-sm">Agence</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Organisation</th>
-                  <th className="text-center py-3 px-4 font-medium text-sm">Plan</th>
-                  <th className="text-center py-3 px-4 font-medium text-sm">Véhicules</th>
-                  <th className="text-center py-3 px-4 font-medium text-sm">Statut</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Créée le</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamsWithVehicleCounts.map((team) => (
-                  <tr key={team.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <p className="font-medium">{team.name}</p>
-                      <p className="text-xs text-gray-500">{team.id.slice(0, 8)}</p>
-                    </td>
-                    <td className="py-3 px-4 text-sm">{team.organization.name}</td>
-                    <td className="py-3 px-4 text-center">
-                      <Badge variant={planColors[team.plan]}>
-                        {planLabels[team.plan]}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agence</TableHead>
+                <TableHead>Organisation</TableHead>
+                <TableHead className="text-center">Plan</TableHead>
+                <TableHead className="text-center">Véhicules</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
+                <TableHead>Créée le</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teamsWithVehicleCounts.map((team) => (
+                <TableRow key={team.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{team.name}</p>
+                        <p className="text-xs text-muted-foreground">{team.id.slice(0, 8)}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{team.organization.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={planColors[team.plan]}>
+                      <Shield className="h-3 w-3 mr-1" />
+                      {planLabels[team.plan]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-sm">
+                      <Car className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">
                         {team.vehicleCount} / {team.maxVehicles}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <Badge variant={statusColors[team.subscriptionStatus || 'incomplete']}>
-                        {team.subscriptionStatus || 'incomplete'}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={statusColors[team.subscriptionStatus || 'incomplete']}>
+                      {team.subscriptionStatus || 'incomplete'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
                       {formatDate(team.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

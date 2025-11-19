@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +22,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  Edit,
+  Trash2,
+  Car,
+  Fuel,
+  Settings,
+  Users,
+  Gauge,
+  CreditCard,
+  Calendar,
+  FileText,
+  History
+} from 'lucide-react';
 import { getVehicle, updateVehicle, deleteVehicle } from '../actions';
 import { formatCurrency } from '@/lib/utils';
 
@@ -161,18 +176,11 @@ export default function VehicleDetailPage() {
     );
   }
 
-  const statusColors: Record<string, string> = {
-    available: 'bg-green-100 text-green-800',
-    rented: 'bg-blue-100 text-blue-800',
-    maintenance: 'bg-yellow-100 text-yellow-800',
-    out_of_service: 'bg-red-100 text-red-800',
-  };
-
-  const statusLabels: Record<string, string> = {
-    available: 'Disponible',
-    rented: 'Loué',
-    maintenance: 'Maintenance',
-    out_of_service: 'Hors service',
+  const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'destructive' }> = {
+    available: { label: 'Disponible', variant: 'success' },
+    rented: { label: 'Loué', variant: 'default' },
+    maintenance: { label: 'Maintenance', variant: 'warning' },
+    out_of_service: { label: 'Hors service', variant: 'destructive' },
   };
 
   return (
@@ -191,7 +199,8 @@ export default function VehicleDetailPage() {
           {!isEditing && (
             <div className="flex gap-2">
               <Button onClick={() => setIsEditing(true)}>
-                ✏️ Modifier
+                <Edit className="mr-2 h-4 w-4" />
+                Modifier
               </Button>
               <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogTrigger asChild>
@@ -200,7 +209,8 @@ export default function VehicleDetailPage() {
                     disabled={saving}
                     className="text-red-600 hover:bg-red-50"
                   >
-                    🗑️ Supprimer
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Supprimer
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -234,111 +244,186 @@ export default function VehicleDetailPage() {
       )}
 
       {!isEditing ? (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Marque</p>
-                  <p className="font-medium">{vehicle.brand}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Modèle</p>
-                  <p className="font-medium">{vehicle.model}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Année</p>
-                  <p className="font-medium">{vehicle.year || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Statut</p>
-                  <span
-                    className={`inline-block text-xs px-2 py-1 rounded-full ${
-                      statusColors[vehicle.status]
-                    }`}
-                  >
-                    {statusLabels[vehicle.status]}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Plaque</p>
-                  <p className="font-medium">{vehicle.plate}</p>
-                </div>
-                {vehicle.vin && (
-                  <div>
-                    <p className="text-sm text-gray-600">VIN</p>
-                    <p className="font-medium text-xs">{vehicle.vin}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="info" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="info">
+              <FileText className="mr-2 h-4 w-4" />
+              Informations
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <History className="mr-2 h-4 w-4" />
+              Historique
+            </TabsTrigger>
+            <TabsTrigger value="documents">
+              <FileText className="mr-2 h-4 w-4" />
+              Documents
+            </TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Caractéristiques techniques</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                {vehicle.fuelType && (
-                  <div>
-                    <p className="text-sm text-gray-600">Carburant</p>
-                    <p className="font-medium">
-                      {vehicle.fuelType === 'diesel' ? 'Diesel' : vehicle.fuelType === 'gasoline' ? 'Essence' : vehicle.fuelType === 'electric' ? 'Électrique' : 'Hybride'}
+          <TabsContent value="info" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Informations générales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Car className="h-4 w-4" />
+                      Marque
                     </p>
+                    <p className="font-medium">{vehicle.brand}</p>
                   </div>
-                )}
-                {vehicle.transmission && (
-                  <div>
-                    <p className="text-sm text-gray-600">Transmission</p>
-                    <p className="font-medium">
-                      {vehicle.transmission === 'manual' ? 'Manuelle' : 'Automatique'}
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Car className="h-4 w-4" />
+                      Modèle
                     </p>
+                    <p className="font-medium">{vehicle.model}</p>
                   </div>
-                )}
-                {vehicle.seats && (
-                  <div>
-                    <p className="text-sm text-gray-600">Places</p>
-                    <p className="font-medium">{vehicle.seats}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Année
+                    </p>
+                    <p className="font-medium">{vehicle.year || 'N/A'}</p>
                   </div>
-                )}
-                {vehicle.mileage && (
-                  <div>
-                    <p className="text-sm text-gray-600">Kilométrage</p>
-                    <p className="font-medium">{vehicle.mileage.toLocaleString()} km</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Statut</p>
+                    <Badge variant={statusConfig[vehicle.status].variant}>
+                      {statusConfig[vehicle.status].label}
+                    </Badge>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tarification</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Tarif journalier</p>
-                  <p className="text-xl font-bold text-primary">
-                    {formatCurrency(parseFloat(vehicle.dailyRate))}/jour
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Plaque</p>
+                    <p className="font-medium">{vehicle.plate}</p>
+                  </div>
+                  {vehicle.vin && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">VIN</p>
+                      <p className="font-medium text-xs">{vehicle.vin}</p>
+                    </div>
+                  )}
                 </div>
-                {vehicle.depositAmount && (
-                  <div>
-                    <p className="text-sm text-gray-600">Caution</p>
-                    <p className="text-xl font-bold">
-                      {formatCurrency(parseFloat(vehicle.depositAmount))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Caractéristiques techniques
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  {vehicle.fuelType && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Fuel className="h-4 w-4" />
+                        Carburant
+                      </p>
+                      <p className="font-medium">
+                        {vehicle.fuelType === 'diesel' ? 'Diesel' : vehicle.fuelType === 'gasoline' ? 'Essence' : vehicle.fuelType === 'electric' ? 'Électrique' : 'Hybride'}
+                      </p>
+                    </div>
+                  )}
+                  {vehicle.transmission && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Transmission
+                      </p>
+                      <p className="font-medium">
+                        {vehicle.transmission === 'manual' ? 'Manuelle' : 'Automatique'}
+                      </p>
+                    </div>
+                  )}
+                  {vehicle.seats && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Places
+                      </p>
+                      <p className="font-medium">{vehicle.seats}</p>
+                    </div>
+                  )}
+                  {vehicle.mileage && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Gauge className="h-4 w-4" />
+                        Kilométrage
+                      </p>
+                      <p className="font-medium">{vehicle.mileage.toLocaleString()} km</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Tarification
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Tarif journalier</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(parseFloat(vehicle.dailyRate))}/jour
                     </p>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  {vehicle.depositAmount && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Caution</p>
+                      <p className="text-2xl font-bold">
+                        {formatCurrency(parseFloat(vehicle.depositAmount))}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Historique des locations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center py-8">
+                  Aucun historique disponible pour le moment
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center py-8">
+                  Aucun document disponible pour le moment
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>

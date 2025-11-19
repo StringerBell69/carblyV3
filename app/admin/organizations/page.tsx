@@ -1,6 +1,16 @@
 import { db } from '@/lib/db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate } from '@/lib/utils';
+import { Building2, Users, Shield, CheckCircle2, XCircle, Calendar, Eye } from 'lucide-react';
 
 export default async function AdminOrganizationsPage() {
   const allOrganizations = await db.query.organizations.findMany({
@@ -13,8 +23,11 @@ export default async function AdminOrganizationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Organizations</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Building2 className="h-8 w-8" />
+          Organizations
+        </h1>
+        <p className="text-muted-foreground mt-1">
           {allOrganizations.length} organisation(s) totale(s)
         </p>
       </div>
@@ -24,43 +37,58 @@ export default async function AdminOrganizationsPage() {
           <CardTitle>Toutes les organisations</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-sm">Nom</th>
-                  <th className="text-center py-3 px-4 font-medium text-sm">Agences</th>
-                  <th className="text-center py-3 px-4 font-medium text-sm">Stripe</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Créée le</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allOrganizations.map((org) => (
-                  <tr key={org.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <p className="font-medium">{org.name}</p>
-                      <p className="text-xs text-gray-500">{org.id.slice(0, 8)}</p>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm font-semibold">
-                        {org.teams.length}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {org.stripeCustomerId ? (
-                        <span className="text-green-600 text-sm">✓</span>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Organisation</TableHead>
+                <TableHead className="text-center">Agences</TableHead>
+                <TableHead className="text-center">Stripe</TableHead>
+                <TableHead>Créée le</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allOrganizations.map((org) => (
+                <TableRow key={org.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Building2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{org.name}</p>
+                        <p className="text-xs text-muted-foreground">{org.id.slice(0, 8)}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="gap-1">
+                      <Users className="h-3 w-3" />
+                      {org.teams.length}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {org.stripeCustomerId ? (
+                      <Badge variant="default" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Connecté
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1">
+                        <XCircle className="h-3 w-3" />
+                        Non connecté
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
                       {formatDate(org.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
