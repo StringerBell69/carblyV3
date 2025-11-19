@@ -12,7 +12,8 @@ import {
   Settings,
   Menu,
   X,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Véhicules', href: '/vehicles', icon: Car },
   { name: 'Réservations', href: '/reservations', icon: Calendar },
   { name: 'Clients', href: '/customers', icon: Users },
+  { name: 'Communications', href: '/communications', icon: MessageSquare },
   { name: 'Paramètres', href: '/settings', icon: Settings },
 ];
 
