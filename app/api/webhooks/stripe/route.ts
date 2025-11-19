@@ -80,16 +80,7 @@ export async function POST(req: NextRequest) {
 
             console.log('[Stripe Webhook] Reservation paid:', metadata.reservationId);
 
-            // Generate contract PDF
-            const contractResult = await generateContractPDF(metadata.reservationId);
-
-            if (contractResult.error) {
-              console.error('[Stripe Webhook] Failed to generate contract:', contractResult.error);
-            } else {
-              console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
-            }
-
-            // Get full reservation data with relations for email
+            // Get full reservation data
             const fullReservation = await db.query.reservations.findFirst({
               where: eq(reservations.id, metadata.reservationId),
               with: {
@@ -98,8 +89,31 @@ export async function POST(req: NextRequest) {
               },
             });
 
+            // Check if full amount was paid (not just deposit)
+            const amountPaid = session.amount_total ? session.amount_total / 100 : 0; // Stripe amounts are in cents
+            const totalAmount = parseFloat(reservation.totalAmount);
+            const isFullPayment = !reservation.depositAmount || amountPaid >= totalAmount;
+
+            let contractPdfUrl: string | undefined;
+
+            if (isFullPayment) {
+              // Only generate contract if full payment was made
+              console.log('[Stripe Webhook] Full payment received, generating contract');
+
+              const contractResult = await generateContractPDF(metadata.reservationId);
+
+              if (contractResult.error) {
+                console.error('[Stripe Webhook] Failed to generate contract:', contractResult.error);
+              } else {
+                console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
+                contractPdfUrl = contractResult.pdfUrl;
+              }
+            } else {
+              console.log('[Stripe Webhook] Deposit payment only, contract will be generated manually by agency');
+            }
+
             if (fullReservation) {
-              // Send confirmation email with contract link
+              // Send confirmation email
               try {
                 await sendPaymentConfirmedEmail({
                   to: fullReservation.customer.email,
@@ -108,7 +122,7 @@ export async function POST(req: NextRequest) {
                     brand: fullReservation.vehicle.brand,
                     model: fullReservation.vehicle.model,
                   },
-                  yousignLink: contractResult.pdfUrl, // Use PDF URL as contract link for now
+                  yousignLink: contractPdfUrl, // Will be undefined if only deposit paid
                 });
                 console.log('[Stripe Webhook] Confirmation email sent to:', fullReservation.customer.email);
               } catch (emailError) {
