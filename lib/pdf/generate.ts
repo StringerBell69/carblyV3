@@ -5,7 +5,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { ContractPDF } from './contract';
 import { uploadToR2 } from '../r2';
 import { db } from '../db';
-import { reservations } from '@/drizzle/schema';
+import { reservations, contracts } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 
 export async function generateContractPDF(reservationId: string): Promise<{
@@ -49,6 +49,28 @@ export async function generateContractPDF(reservationId: string): Promise<{
       path,
       contentType: 'application/pdf',
     });
+
+    // Check if contract already exists
+    const existingContract = await db.query.contracts.findFirst({
+      where: eq(contracts.reservationId, reservationId),
+    });
+
+    if (existingContract) {
+      // Update existing contract
+      await db
+        .update(contracts)
+        .set({
+          pdfUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(contracts.id, existingContract.id));
+    } else {
+      // Create new contract record
+      await db.insert(contracts).values({
+        reservationId,
+        pdfUrl,
+      });
+    }
 
     return { pdfUrl };
   } catch (error) {

@@ -15,6 +15,7 @@ export async function GET(
       with: {
         vehicle: true,
         customer: true,
+        contracts: true,
       },
     });
 

@@ -99,6 +99,10 @@ export default function PublicReservationPage() {
   }
 
   if (reservation.status !== 'pending_payment' && reservation.status !== 'draft') {
+    // Find the contract PDF
+    const contract = reservation.contracts?.[0];
+    const contractPdfUrl = contract?.pdfUrl;
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
         <Card className="w-full max-w-md border-green-200">
@@ -111,11 +115,29 @@ export default function PublicReservationPage() {
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Réservation déjà payée
+                  Réservation confirmée
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-gray-600 mb-4">
                   Votre réservation a déjà été confirmée et payée.
                 </p>
+                {contractPdfUrl && (
+                  <div className="mt-6">
+                    <a
+                      href={contractPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                      </svg>
+                      Télécharger le contrat
+                    </a>
+                    <p className="text-sm text-gray-500 mt-3">
+                      Le contrat a également été envoyé par email
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
