@@ -20,66 +20,70 @@ interface SectionCardsProps {
     totalVehicles: number
     availableVehicles: number
   }
+  trends: {
+    revenueTrend: number
+    reservationsTrend: number
+    vehiclesTrend: number
+    occupancyTrend: number
+  }
 }
 
-export function SectionCards({ stats }: SectionCardsProps) {
-  // Mock trends - in a real app, these would be calculated from historical data
-  const revenueTrend = 12.5
-  const reservationsTrend = 8.3
-  const vehiclesTrend = -2.1
-  const occupancyTrend = 4.7
+export function SectionCards({ stats, trends }: SectionCardsProps) {
+  const { revenueTrend, reservationsTrend, vehiclesTrend, occupancyTrend } = trends
 
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Total Revenue</CardDescription>
+          <CardDescription>Chiffre d'affaires</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {formatCurrency(stats.revenue)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +{revenueTrend}%
+              {revenueTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
+              {revenueTrend >= 0 ? '+' : ''}{revenueTrend}%
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month <IconTrendingUp className="size-4" />
+            {revenueTrend >= 0 ? 'Tendance à la hausse ce mois-ci' : 'Tendance à la baisse ce mois-ci'}{' '}
+            {revenueTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            Revenue for the last 6 months
+            Revenus des 6 derniers mois
           </div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Active Reservations</CardDescription>
+          <CardDescription>Réservations actives</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {stats.activeReservations}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +{reservationsTrend}%
+              {reservationsTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
+              {reservationsTrend >= 0 ? '+' : ''}{reservationsTrend}%
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong booking growth <IconTrendingUp className="size-4" />
+            {reservationsTrend >= 0 ? 'Forte croissance des réservations' : 'Baisse des réservations'}{' '}
+            {reservationsTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            {stats.upcomingReservations} upcoming reservation{stats.upcomingReservations !== 1 ? 's' : ''}
+            {stats.upcomingReservations} réservation{stats.upcomingReservations !== 1 ? 's' : ''} à venir
           </div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Available Vehicles</CardDescription>
+          <CardDescription>Véhicules disponibles</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {stats.availableVehicles}
           </CardTitle>
@@ -92,33 +96,36 @@ export function SectionCards({ stats }: SectionCardsProps) {
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            {vehiclesTrend >= 0 ? 'Increased availability' : 'High utilization'}{' '}
+            {vehiclesTrend >= 0 ? 'Disponibilité accrue' : 'Forte utilisation'}{' '}
             {vehiclesTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
           <div className="text-muted-foreground">
-            Out of {stats.totalVehicles} total vehicle{stats.totalVehicles !== 1 ? 's' : ''}
+            Sur {stats.totalVehicles} véhicule{stats.totalVehicles !== 1 ? 's' : ''} au total
           </div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Occupancy Rate</CardDescription>
+          <CardDescription>Taux d'occupation</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
             {stats.occupancyRate}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <IconTrendingUp />
-              +{occupancyTrend}%
+              {occupancyTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
+              {occupancyTrend >= 0 ? '+' : ''}{occupancyTrend}%
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase <IconTrendingUp className="size-4" />
+            {occupancyTrend >= 0 ? 'Augmentation constante des performances' : 'Baisse des performances'}{' '}
+            {occupancyTrend >= 0 ? <IconTrendingUp className="size-4" /> : <IconTrendingDown className="size-4" />}
           </div>
-          <div className="text-muted-foreground">Exceeding targets</div>
+          <div className="text-muted-foreground">
+            {occupancyTrend >= 0 ? 'Objectifs dépassés' : 'En dessous des objectifs'}
+          </div>
         </CardFooter>
       </Card>
     </div>

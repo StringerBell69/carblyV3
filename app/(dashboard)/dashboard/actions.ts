@@ -163,3 +163,124 @@ export async function getMonthlyRevenue() {
     return { error: 'Failed to fetch monthly revenue' };
   }
 }
+
+export async function getDashboardTrends() {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Revenue trend - current month vs last month
+    const currentMonthRevenue = await db
+      .select({ total: sql<string>`COALESCE(SUM(${payments.amount}), 0)` })
+      .from(payments)
+      .innerJoin(reservations, eq(payments.reservationId, reservations.id))
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(payments.paidAt, startOfCurrentMonth),
+          eq(payments.status, 'succeeded')
+        )
+      );
+
+    const lastMonthRevenue = await db
+      .select({ total: sql<string>`COALESCE(SUM(${payments.amount}), 0)` })
+      .from(payments)
+      .innerJoin(reservations, eq(payments.reservationId, reservations.id))
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(payments.paidAt, startOfLastMonth),
+          lte(payments.paidAt, endOfLastMonth),
+          eq(payments.status, 'succeeded')
+        )
+      );
+
+    const currentRev = parseFloat(currentMonthRevenue[0]?.total || '0');
+    const lastRev = parseFloat(lastMonthRevenue[0]?.total || '0');
+    const revenueTrend = lastRev > 0 ? ((currentRev - lastRev) / lastRev) * 100 : 0;
+
+    // Active reservations trend
+    const currentMonthReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(reservations.createdAt, startOfCurrentMonth),
+          sql`${reservations.status} IN ('confirmed', 'in_progress', 'paid')`
+        )
+      );
+
+    const lastMonthReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(reservations.createdAt, startOfLastMonth),
+          lte(reservations.createdAt, endOfLastMonth),
+          sql`${reservations.status} IN ('confirmed', 'in_progress', 'paid')`
+        )
+      );
+
+    const currentRes = currentMonthReservations[0]?.count || 0;
+    const lastRes = lastMonthReservations[0]?.count || 0;
+    const reservationsTrend = lastRes > 0 ? ((currentRes - lastRes) / lastRes) * 100 : 0;
+
+    // Vehicles trend - change in available vehicles
+    // Get snapshot from a week ago to compare
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const currentAvailable = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(
+        and(
+          eq(vehicles.teamId, teamId),
+          eq(vehicles.status, 'available')
+        )
+      );
+
+    // For simplicity, compare total vehicles vs available
+    const totalVehicles = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(eq(vehicles.teamId, teamId));
+
+    const available = currentAvailable[0]?.count || 0;
+    const total = totalVehicles[0]?.count || 0;
+
+    // Trend based on availability rate (more available = positive trend)
+    const currentAvailabilityRate = total > 0 ? (available / total) * 100 : 0;
+    const targetAvailabilityRate = 30; // Target 30% availability
+    const vehiclesTrend = currentAvailabilityRate - targetAvailabilityRate;
+
+    // Occupancy trend - similar calculation
+    const currentOccupancy = total > 0 ? ((total - available) / total) * 100 : 0;
+    const targetOccupancy = 70; // Target 70% occupancy
+    const occupancyTrend = currentOccupancy - targetOccupancy;
+
+    return {
+      revenueTrend: Math.round(revenueTrend * 10) / 10,
+      reservationsTrend: Math.round(reservationsTrend * 10) / 10,
+      vehiclesTrend: Math.round(vehiclesTrend * 10) / 10,
+      occupancyTrend: Math.round(occupancyTrend * 10) / 10,
+    };
+  } catch (error) {
+    console.error('[getDashboardTrends]', error);
+    return {
+      revenueTrend: 0,
+      reservationsTrend: 0,
+      vehiclesTrend: 0,
+      occupancyTrend: 0,
+    };
+  }
+}
