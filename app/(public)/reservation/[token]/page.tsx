@@ -233,7 +233,7 @@ export default function PublicReservationPage() {
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-gray-600">Frais Stripe (estimation)</span>
+                    <span className="text-gray-600">Frais bancaires (estimation)</span>
                     <span className="text-xs text-gray-400">~1.4% + 0.25€</span>
                   </div>
                   <span className="text-gray-600">
@@ -243,11 +243,11 @@ export default function PublicReservationPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Frais de service Carbly</span>
+                  <span className="text-gray-600">Frais Carbly</span>
                   <span className="text-gray-600">0,99€</span>
                 </div>
                 <p className="text-xs text-gray-500 italic pt-1">
-                  Les frais de paiement sont facturés séparément pour la transparence
+                  Les frais sont facturés séparément pour la transparence
                 </p>
               </div>
 
@@ -269,7 +269,7 @@ export default function PublicReservationPage() {
             <div className="bg-blue-50 p-4 rounded-lg space-y-2 text-sm">
               <p className="font-medium">ℹ️ Informations importantes</p>
               <ul className="space-y-1 text-gray-700">
-                <li>• Paiement sécurisé par Stripe</li>
+                <li>• Paiement 100% sécurisé</li>
                 <li>• Carte bancaire ou SEPA acceptés</li>
                 <li>• Un contrat de location sera généré après paiement</li>
                 <li>• Vous recevrez une confirmation par email</li>
