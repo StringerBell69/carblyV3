@@ -241,10 +241,7 @@ export async function getPresignedUrl(data: {
     const sanitizedFileName = data.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const path = `vehicles/${teamId}/${data.vehicleId || 'temp'}/${timestamp}-${sanitizedFileName}`;
 
-    const url = await getPresignedUploadUrl({
-      path,
-      contentType: data.fileType,
-    });
+    const url = await getPresignedUploadUrl(path, data.fileType);
 
     return {
       uploadUrl: url,

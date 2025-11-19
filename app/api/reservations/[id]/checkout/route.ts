@@ -6,9 +6,10 @@ import { getCurrentTeamId } from '@/lib/session';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const teamId = await getCurrentTeamId();
 
     if (!teamId) {
@@ -21,7 +22,7 @@ export async function POST(
     // Get reservation
     const reservation = await db.query.reservations.findFirst({
       where: and(
-        eq(reservations.id, params.id),
+        eq(reservations.id, id),
         eq(reservations.teamId, teamId)
       ),
     });
@@ -48,7 +49,7 @@ export async function POST(
         checkoutPhotos: photos,
         status: 'completed',
       })
-      .where(eq(reservations.id, params.id));
+      .where(eq(reservations.id, id));
 
     // Update vehicle status back to available
     await db

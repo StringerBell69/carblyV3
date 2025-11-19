@@ -163,15 +163,11 @@ export async function createReservation(data: {
     }
 
     // Calculate total amount
-    const totalAmount = calculateRentalPrice({
-      dailyRate: parseFloat(vehicle.dailyRate),
-      startDate: data.startDate,
-      endDate: data.endDate,
-      depositAmount: data.depositAmount ? parseFloat(data.depositAmount) : undefined,
-      insuranceAmount: data.includeInsurance && data.insuranceAmount
-        ? parseFloat(data.insuranceAmount)
-        : undefined,
-    });
+    const totalAmount = calculateRentalPrice(
+      parseFloat(vehicle.dailyRate),
+      data.startDate,
+      data.endDate
+    );
 
     // Generate magic link token
     const magicLinkToken = generateRandomToken();

@@ -53,7 +53,7 @@ export default async function AdminTeamsPage() {
     active: 'success',
     past_due: 'warning',
     canceled: 'destructive',
-    incomplete: 'secondary',
+    incomplete: 'default',
   };
 
   return (

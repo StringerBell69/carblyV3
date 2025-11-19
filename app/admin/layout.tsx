@@ -16,7 +16,7 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  if (!session.user.isSuperAdmin) {
+  if (!(session.user as any).isSuperAdmin) {
     redirect('/dashboard');
   }
 
