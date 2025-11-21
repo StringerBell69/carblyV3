@@ -1,58 +1,292 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @theme {
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(217 91% 60%);
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(217 91% 60%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
+  /* Primary Brand Color - Deep Purple-Blue */
+  --color-primary: oklch(39.8% 0.195 277.366);
+  --color-primary-foreground: oklch(97% 0.01 277);
+  --color-primary-light: oklch(55% 0.18 277.366);
+  --color-primary-lighter: oklch(70% 0.15 277.366);
+  --color-primary-dark: oklch(30% 0.2 277.366);
 
-  --radius-lg: 0.5rem;
-  --radius-md: calc(0.5rem - 2px);
-  --radius-sm: calc(0.5rem - 4px);
+  /* Accent Color - Warm Amber Contrast */
+  --color-accent: oklch(72% 0.18 55);
+  --color-accent-foreground: oklch(20% 0.05 55);
+  --color-accent-muted: oklch(85% 0.1 55);
+
+  /* Background - Atmospheric Gradient Base */
+  --color-background: oklch(98% 0.005 277);
+  --color-background-alt: oklch(96% 0.01 277);
+  --color-foreground: oklch(20% 0.02 277);
+
+  /* Secondary Colors */
+  --color-secondary: oklch(92% 0.02 277);
+  --color-secondary-foreground: oklch(30% 0.05 277);
+
+  /* Muted Colors */
+  --color-muted: oklch(94% 0.015 277);
+  --color-muted-foreground: oklch(55% 0.05 277);
+
+  /* Card with Subtle Tint */
+  --color-card: oklch(99% 0.003 277);
+  --color-card-foreground: oklch(20% 0.02 277);
+
+  /* Popover */
+  --color-popover: oklch(99% 0.003 277);
+  --color-popover-foreground: oklch(20% 0.02 277);
+
+  /* Destructive - Vibrant Red */
+  --color-destructive: oklch(60% 0.22 25);
+  --color-destructive-foreground: oklch(97% 0.01 25);
+
+  /* Success - Emerald Green */
+  --color-success: oklch(65% 0.18 150);
+  --color-success-foreground: oklch(97% 0.01 150);
+
+  /* Border & Input */
+  --color-border: oklch(88% 0.02 277);
+  --color-input: oklch(88% 0.02 277);
+  --color-ring: oklch(39.8% 0.195 277.366);
+
+  /* Rounded Corners - More Distinctive */
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
+
+  /* Typography Scale */
+  --font-heading: "Fraunces", serif;
+  --font-body: "Outfit", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }
 
 .dark {
-  --color-background: hsl(222.2 84% 4.9%);
-  --color-foreground: hsl(210 40% 98%);
-  --color-card: hsl(222.2 84% 4.9%);
-  --color-card-foreground: hsl(210 40% 98%);
-  --color-popover: hsl(222.2 84% 4.9%);
-  --color-popover-foreground: hsl(210 40% 98%);
-  --color-primary: hsl(217 91% 60%);
-  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-secondary: hsl(217.2 32.6% 17.5%);
-  --color-secondary-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(217.2 32.6% 17.5%);
-  --color-muted-foreground: hsl(215 20.2% 65.1%);
-  --color-accent: hsl(217.2 32.6% 17.5%);
-  --color-accent-foreground: hsl(210 40% 98%);
-  --color-destructive: hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(217.2 32.6% 17.5%);
-  --color-input: hsl(217.2 32.6% 17.5%);
-  --color-ring: hsl(224.3 76.3% 48%);
+  --color-background: oklch(18% 0.03 277.366);
+  --color-background-alt: oklch(22% 0.04 277.366);
+  --color-foreground: oklch(95% 0.01 277);
+
+  --color-card: oklch(20% 0.03 277.366);
+  --color-card-foreground: oklch(95% 0.01 277);
+
+  --color-popover: oklch(20% 0.03 277.366);
+  --color-popover-foreground: oklch(95% 0.01 277);
+
+  --color-primary: oklch(60% 0.18 277.366);
+  --color-primary-foreground: oklch(10% 0.05 277);
+  --color-primary-light: oklch(70% 0.15 277.366);
+  --color-primary-dark: oklch(45% 0.2 277.366);
+
+  --color-secondary: oklch(25% 0.04 277);
+  --color-secondary-foreground: oklch(90% 0.01 277);
+
+  --color-muted: oklch(30% 0.04 277);
+  --color-muted-foreground: oklch(70% 0.05 277);
+
+  --color-accent: oklch(75% 0.16 55);
+  --color-accent-foreground: oklch(15% 0.05 55);
+
+  --color-border: oklch(32% 0.04 277);
+  --color-input: oklch(32% 0.04 277);
+  --color-ring: oklch(60% 0.18 277.366);
+
+  --color-destructive: oklch(65% 0.2 25);
+  --color-destructive-foreground: oklch(95% 0.01 25);
+
+  --color-success: oklch(70% 0.16 150);
+  --color-success-foreground: oklch(95% 0.01 150);
 }
 
+/* Keyframe Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+/* Base Styles */
 * {
   border-color: var(--color-border);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background-color: var(--color-background);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, oklch(50% 0.15 277.366 / 0.15), transparent),
+    radial-gradient(circle at 80% 80%, oklch(72% 0.18 55 / 0.08), transparent),
+    linear-gradient(135deg,
+      var(--color-background) 0%,
+      var(--color-background-alt) 50%,
+      var(--color-background) 100%
+    );
+  background-attachment: fixed;
+  background-size: 100% 100%, 100% 100%, 200% 200%;
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  animation: gradient-shift 20s ease infinite;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, oklch(0% 0 0 / 0.02) 2px, oklch(0% 0 0 / 0.02) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, oklch(0% 0 0 / 0.02) 2px, oklch(0% 0 0 / 0.02) 4px);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground);
+}
+
+h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-variation-settings: 'opsz' 144;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-variation-settings: 'opsz' 120;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-variation-settings: 'opsz' 100;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Animation Utilities */
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }
+
+/* Glass Morphism Effect */
+.glass {
+  background: var(--color-card);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--color-border);
+}
+
+/* Elevated Card with Glow */
+.card-elevated {
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 2px 8px -2px oklch(39.8% 0.195 277.366 / 0.1),
+    0 8px 24px -8px oklch(39.8% 0.195 277.366 / 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-elevated:hover {
+  box-shadow:
+    0 0 0 1px var(--color-primary),
+    0 4px 16px -4px oklch(39.8% 0.195 277.366 / 0.2),
+    0 12px 32px -8px oklch(39.8% 0.195 277.366 / 0.25);
+  transform: translateY(-2px);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg,
+    var(--color-primary),
+    var(--color-primary-light),
+    var(--color-accent)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-dark);
+}
+
+/* Selection */
+::selection {
+  background: oklch(39.8% 0.195 277.366 / 0.3);
   color: var(--color-foreground);
 }
