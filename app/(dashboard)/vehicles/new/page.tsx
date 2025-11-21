@@ -20,14 +20,20 @@ import {
   Users,
   Gauge,
   Hash,
-  Plus
+  Plus,
+  Image as ImageIcon,
+  X,
+  Upload,
 } from 'lucide-react';
 import { createVehicle } from '../actions';
+import { toast } from 'sonner';
 
 export default function NewVehiclePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     brand: '',
@@ -42,6 +48,52 @@ export default function NewVehiclePage() {
     seats: '',
     mileage: '',
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await res.json();
+        return data.url;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...uploadedUrls]);
+      toast.success(`${uploadedUrls.length} photo(s) téléchargée(s) avec succès`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to upload images';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setUploadingImage(false);
+      // Reset input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +113,7 @@ export default function NewVehiclePage() {
         transmission: formData.transmission || undefined,
         seats: formData.seats ? parseInt(formData.seats) : undefined,
         mileage: formData.mileage ? parseInt(formData.mileage) : undefined,
+        images: images,
       });
 
       if (result.error) {
@@ -298,6 +351,94 @@ export default function NewVehiclePage() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Photos du véhicule
+            </CardTitle>
+            <CardDescription>
+              Ajoutez des photos du véhicule (max 10MB par image)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="images" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Ajouter des photos
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage || loading}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('images')?.click()}
+                  disabled={uploadingImage || loading}
+                  className="w-full"
+                >
+                  {uploadingImage ? (
+                    <>Téléchargement...</>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choisir des images
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Formats acceptés: JPG, PNG, WebP. Taille maximale: 10MB par image.
+              </p>
+            </div>
+
+            {/* Image Preview Grid */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {images.map((url, index) => (
+                  <div
+                    key={index}
+                    className="relative aspect-video rounded-lg border overflow-hidden group"
+                  >
+                    <img
+                      src={url}
+                      alt={`Vehicle ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={loading}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded">
+                        Photo principale
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {images.length === 0 && (
+              <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Aucune photo ajoutée</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

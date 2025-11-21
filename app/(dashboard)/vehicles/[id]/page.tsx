@@ -34,10 +34,14 @@ import {
   CreditCard,
   Calendar,
   FileText,
-  History
+  History,
+  Image as ImageIcon,
+  X,
+  Upload,
 } from 'lucide-react';
 import { getVehicle, updateVehicle, deleteVehicle } from '../actions';
 import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function VehicleDetailPage() {
   const router = useRouter();
@@ -50,6 +54,8 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     brand: '',
@@ -80,6 +86,7 @@ export default function VehicleDetailPage() {
 
       const v = result.vehicle!;
       setVehicle(v);
+      setImages(v.images || []);
       setFormData({
         brand: v.brand,
         model: v.model,
@@ -101,6 +108,53 @@ export default function VehicleDetailPage() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('vehicleId', vehicleId);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await res.json();
+        return data.url;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...uploadedUrls]);
+      toast.success(`${uploadedUrls.length} photo(s) téléchargée(s) avec succès`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to upload images';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setUploadingImage(false);
+      // Reset input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -120,6 +174,7 @@ export default function VehicleDetailPage() {
         transmission: formData.transmission || undefined,
         seats: formData.seats ? parseInt(formData.seats) : undefined,
         mileage: formData.mileage ? parseInt(formData.mileage) : undefined,
+        images: images,
       });
 
       if (result.error) {
@@ -367,6 +422,43 @@ export default function VehicleDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Photos du véhicule
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {vehicle.images && vehicle.images.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {vehicle.images.map((url: string, index: number) => (
+                      <div
+                        key={index}
+                        className="relative aspect-video rounded-lg border overflow-hidden"
+                      >
+                        <img
+                          src={url}
+                          alt={`${vehicle.brand} ${vehicle.model} ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {index === 0 && (
+                          <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded">
+                            Photo principale
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                    <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Aucune photo disponible</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <CreditCard className="h-5 w-5" />
                   Tarification
                 </CardTitle>
@@ -541,6 +633,91 @@ export default function VehicleDetailPage() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Photos du véhicule
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="images-edit" className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Ajouter des photos
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="images-edit"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage || saving}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('images-edit')?.click()}
+                    disabled={uploadingImage || saving}
+                    className="w-full"
+                  >
+                    {uploadingImage ? (
+                      <>Téléchargement...</>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Choisir des images
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Formats acceptés: JPG, PNG, WebP. Taille maximale: 10MB par image.
+                </p>
+              </div>
+
+              {/* Image Preview Grid */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {images.map((url, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-video rounded-lg border overflow-hidden group"
+                    >
+                      <img
+                        src={url}
+                        alt={`Vehicle ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={saving}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded">
+                          Photo principale
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {images.length === 0 && (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Aucune photo ajoutée</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
