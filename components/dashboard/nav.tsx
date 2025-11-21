@@ -46,17 +46,17 @@ export function DashboardNav({ user }: { user: User }) {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b backdrop-blur-xl">
         <div className="flex items-center justify-between p-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold shadow-lg">
               C
             </div>
-            <span className="text-xl font-bold">Carbly</span>
+            <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
           </Link>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-md hover:bg-gray-100"
+            className="p-2 rounded-xl hover:bg-primary/10 transition-colors"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -65,9 +65,9 @@ export function DashboardNav({ user }: { user: User }) {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white pt-16">
+        <div className="lg:hidden fixed inset-0 z-40 bg-background pt-16 animate-fade-in">
           <nav className="flex flex-col p-4 space-y-2">
-            {navigation.map((item) => {
+            {navigation.map((item, index) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
               return (
@@ -75,10 +75,10 @@ export function DashboardNav({ user }: { user: User }) {
                   key={item.name}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:shadow-sm ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all animate-slide-in-right stagger-${index + 1} opacity-0 ${
                     isActive
-                      ? 'bg-primary text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-gradient-to-r from-primary to-primary-light text-primary-foreground shadow-lg'
+                      : 'text-foreground hover:bg-primary/10'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -86,19 +86,21 @@ export function DashboardNav({ user }: { user: User }) {
                 </Link>
               );
             })}
-            <hr className="my-4" />
-            <div className="flex items-center gap-3 px-4 py-2">
-              <Avatar>
-                <AvatarFallback>{user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}</AvatarFallback>
+            <hr className="my-4 border-border" />
+            <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-muted">
+              <Avatar className="border-2 border-primary/20">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary-light text-primary-foreground font-bold">
+                  {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user.name || user.email}</p>
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                <p className="text-sm font-semibold truncate">{user.name || user.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors hover:shadow-sm"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all"
             >
               <LogOut className="h-5 w-5" />
               Déconnexion
@@ -109,12 +111,12 @@ export function DashboardNav({ user }: { user: User }) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-          <Link href="/dashboard" className="flex items-center gap-2 h-16 shrink-0">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card/50 backdrop-blur-sm px-6 pb-4">
+          <Link href="/dashboard" className="flex items-center gap-3 h-16 shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg">
               C
             </div>
-            <span className="text-2xl font-bold">Carbly</span>
+            <span className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
           </Link>
           <nav className="flex flex-1 flex-col">
             <ul className="flex flex-1 flex-col gap-y-2">
@@ -125,10 +127,10 @@ export function DashboardNav({ user }: { user: User }) {
                   <li key={item.name}>
                     <Link
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:shadow-sm ${
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
                         isActive
-                          ? 'bg-primary text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          ? 'bg-gradient-to-r from-primary to-primary-light text-primary-foreground shadow-lg'
+                          : 'text-foreground hover:bg-primary/10 hover:translate-x-1'
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -139,21 +141,23 @@ export function DashboardNav({ user }: { user: User }) {
               })}
             </ul>
             <div className="mt-auto">
-              <div className="border-t border-gray-200 pt-4 pb-4">
-                <div className="flex items-center gap-3 px-3 py-2">
-                  <Avatar>
-                    <AvatarFallback>{user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}</AvatarFallback>
+              <div className="border-t border-border pt-4 pb-4">
+                <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-xl bg-muted/50">
+                  <Avatar className="border-2 border-primary/20">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-light text-primary-foreground font-bold">
+                      {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-semibold truncate">
                       {user.name || user.email}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="mt-2 w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors hover:shadow-sm"
+                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all hover:translate-x-1"
                 >
                   <LogOut className="h-5 w-5" />
                   Déconnexion
