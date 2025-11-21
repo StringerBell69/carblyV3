@@ -5,7 +5,22 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Car, Calendar, User, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import {
+  AlertCircle,
+  Car,
+  Calendar,
+  User,
+  CreditCard,
+  Loader2,
+  CheckCircle2,
+  Download,
+  FileText,
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+} from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function PublicReservationPage() {
@@ -98,50 +113,246 @@ export default function PublicReservationPage() {
     );
   }
 
+  // Reservation Hub for paid reservations
   if (reservation.status !== 'pending_payment' && reservation.status !== 'draft') {
-    // Find the contract PDF
     const contract = reservation.contracts?.[0];
     const contractPdfUrl = contract?.pdfUrl;
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-        <Card className="w-full max-w-md border-green-200">
-          <CardContent className="pt-8">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="rounded-full bg-green-100 p-3">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-green-100 p-3">
+                <CheckCircle2 className="w-12 h-12 text-green-600" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Réservation confirmée</h1>
+            <p className="text-gray-600">Réservation #{reservation.id.slice(0, 8)}</p>
+          </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Contract Section */}
+          <Card className="border-green-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-600" />
+                Contrat de location
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {contract?.signedAt && contract?.signedPdfUrl ? (
+                // Contract is signed - show download link
+                <>
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <p className="font-medium">Contrat signé</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Votre contrat a été signé électroniquement. Vous pouvez le télécharger ci-dessous.
+                  </p>
+                  <a
+                    href={contract.signedPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Download className="w-5 h-5" />
+                    Télécharger le contrat signé
+                  </a>
+                </>
+              ) : contract?.yousignSignatureRequestId ? (
+                // Contract generated but not signed - show Yousign link
+                <>
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <AlertCircle className="w-5 h-5" />
+                    <p className="font-medium">Signature requise</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Le contrat de location est prêt. Veuillez le signer électroniquement via Yousign.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Un email avec le lien de signature vous a été envoyé. Vous pouvez également accéder directement à la signature ci-dessous.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      // Reload to check if signature link is available
+                      window.location.reload();
+                    }}
+                    className="w-full"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Actualiser le statut
+                  </Button>
+                </>
+              ) : contractPdfUrl ? (
+                // Contract PDF exists but Yousign not initiated
+                <>
+                  <div className="flex items-center gap-2 text-yellow-600">
+                    <Clock className="w-5 h-5" />
+                    <p className="font-medium">Contrat en préparation</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Le contrat est en cours de préparation par l'agence. Vous recevrez un email avec le lien de signature électronique très prochainement.
+                  </p>
+                </>
+              ) : (
+                // No contract yet
+                <>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="w-5 h-5" />
+                    <p className="font-medium">En attente du contrat</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    L'agence va générer votre contrat de location sous peu. Vous recevrez un email dès qu'il sera prêt à signer.
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      💡 Le contrat sera disponible une fois le paiement complet effectué ou lorsque l'agence le générera.
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Vehicle Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="w-5 h-5 text-primary" />
+                  Véhicule
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {reservation.vehicle.brand} {reservation.vehicle.model}
+                  </p>
+                  <p className="text-gray-600 font-mono">{reservation.vehicle.plate}</p>
+                </div>
+                {reservation.vehicle.year && (
+                  <div>
+                    <p className="text-sm text-gray-500">Année</p>
+                    <p className="font-medium">{reservation.vehicle.year}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Customer Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-primary" />
+                  Vos informations
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {reservation.customer.firstName} {reservation.customer.lastName}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Mail className="w-4 h-4" />
+                  <p className="text-sm">{reservation.customer.email}</p>
+                </div>
+                {reservation.customer.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Phone className="w-4 h-4" />
+                    <p className="text-sm">{reservation.customer.phone}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Rental Period */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                Période de location
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-green-100 p-3">
+                    <Calendar className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Date de début</p>
+                    <p className="font-semibold text-lg">{formatDate(reservation.startDate)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-red-100 p-3">
+                    <Calendar className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Date de fin</p>
+                    <p className="font-semibold text-lg">{formatDate(reservation.endDate)}</p>
+                  </div>
                 </div>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Réservation confirmée
-                </h2>
-                <p className="text-gray-600 mb-4">
-                  Votre réservation a déjà été confirmée et payée.
-                </p>
-                {contractPdfUrl && (
-                  <div className="mt-6">
-                    <a
-                      href={contractPdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
-                      </svg>
-                      Télécharger le contrat
-                    </a>
-                    <p className="text-sm text-gray-500 mt-3">
-                      Le contrat a également été envoyé par email
-                    </p>
+            </CardContent>
+          </Card>
+
+          {/* Payment Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                Informations de paiement
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+                <CheckCircle2 className="w-5 h-5" />
+                <p className="font-medium">Paiement confirmé</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Montant total</span>
+                  <span className="font-semibold text-lg">{formatCurrency(parseFloat(reservation.totalAmount))}</span>
+                </div>
+                {reservation.depositAmount && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Acompte payé</span>
+                    <span className="font-medium">{formatCurrency(parseFloat(reservation.depositAmount))}</span>
                   </div>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Important Info */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="pt-6">
+              <h3 className="font-semibold text-blue-900 mb-3">📋 Informations importantes</h3>
+              <ul className="space-y-2 text-sm text-blue-800">
+                <li>• Présentez-vous à l'heure convenue pour récupérer le véhicule</li>
+                <li>• N'oubliez pas votre permis de conduire et une pièce d'identité</li>
+                <li>• Le contrat de location vous a été envoyé par email</li>
+                <li>• En cas de problème, contactez directement l'agence</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <div className="text-center text-sm text-gray-500">
+            <p>Besoin d'aide ? Consultez le contrat ou contactez l'agence de location.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -255,7 +466,7 @@ export default function PublicReservationPage() {
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-gray-600">Frais Stripe (estimation)</span>
+                    <span className="text-gray-600">Frais bancaires (estimation)</span>
                     <span className="text-xs text-gray-400">~1.4% + 0.25€</span>
                   </div>
                   <span className="text-gray-600">
@@ -265,11 +476,11 @@ export default function PublicReservationPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Frais de service Carbly</span>
+                  <span className="text-gray-600">Frais Carbly</span>
                   <span className="text-gray-600">0,99€</span>
                 </div>
                 <p className="text-xs text-gray-500 italic pt-1">
-                  Les frais de paiement sont facturés séparément pour la transparence
+                  Les frais sont facturés séparément pour la transparence
                 </p>
               </div>
 
@@ -291,7 +502,7 @@ export default function PublicReservationPage() {
             <div className="bg-blue-50 p-4 rounded-lg space-y-2 text-sm">
               <p className="font-medium">ℹ️ Informations importantes</p>
               <ul className="space-y-1 text-gray-700">
-                <li>• Paiement sécurisé par Stripe</li>
+                <li>• Paiement 100% sécurisé</li>
                 <li>• Carte bancaire ou SEPA acceptés</li>
                 <li>• Un contrat de location sera généré après paiement</li>
                 <li>• Vous recevrez une confirmation par email</li>

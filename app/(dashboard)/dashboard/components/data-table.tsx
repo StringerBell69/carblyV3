@@ -69,13 +69,13 @@ const statusIcons: Record<string, React.ReactNode> = {
 }
 
 const statusLabels: Record<string, string> = {
-  draft: 'Draft',
-  pending_payment: 'Pending Payment',
-  paid: 'Paid',
-  confirmed: 'Confirmed',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
+  draft: 'Brouillon',
+  pending_payment: 'Paiement en attente',
+  paid: 'Payé',
+  confirmed: 'Confirmé',
+  in_progress: 'En cours',
+  completed: 'Terminé',
+  cancelled: 'Annulé',
 }
 
 export function DataTable({ data }: DataTableProps) {
@@ -103,31 +103,31 @@ export function DataTable({ data }: DataTableProps) {
     >
       <div className="flex items-center justify-between px-4 lg:px-6">
         <Label htmlFor="view-selector" className="sr-only">
-          View
+          Vue
         </Label>
         <Select value={currentView} onValueChange={setCurrentView}>
           <SelectTrigger
             className="flex w-fit @4xl/main:hidden"
             id="view-selector"
           >
-            <SelectValue placeholder="Select a view" />
+            <SelectValue placeholder="Sélectionner une vue" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Reservations</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="upcoming">Upcoming</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="all">Toutes les réservations</SelectItem>
+            <SelectItem value="active">Actives</SelectItem>
+            <SelectItem value="upcoming">À venir</SelectItem>
+            <SelectItem value="completed">Terminées</SelectItem>
           </SelectContent>
         </Select>
         <TabsList className="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
-          <TabsTrigger value="all">All Reservations</TabsTrigger>
+          <TabsTrigger value="all">Toutes les réservations</TabsTrigger>
           <TabsTrigger value="active">
-            Active <Badge variant="secondary">{data.filter(r => ['confirmed', 'in_progress', 'paid'].includes(r.status)).length}</Badge>
+            Actives <Badge variant="secondary">{data.filter(r => ['confirmed', 'in_progress', 'paid'].includes(r.status)).length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="upcoming">
-            Upcoming <Badge variant="secondary">{data.filter(r => ['confirmed', 'paid'].includes(r.status)).length}</Badge>
+            À venir <Badge variant="secondary">{data.filter(r => ['confirmed', 'paid'].includes(r.status)).length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="completed">Terminées</TabsTrigger>
         </TabsList>
       </div>
       <TabsContent
@@ -138,12 +138,12 @@ export function DataTable({ data }: DataTableProps) {
           <Table>
             <TableHeader className="bg-muted sticky top-0 z-10">
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Véhicule</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Date de début</TableHead>
+                <TableHead>Date de fin</TableHead>
+                <TableHead className="text-right">Montant</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -192,18 +192,18 @@ export function DataTable({ data }: DataTableProps) {
                             size="icon"
                           >
                             <IconDotsVertical />
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">Ouvrir le menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-32">
                           <DropdownMenuItem asChild>
-                            <Link href={`/reservations/${reservation.id}`}>View</Link>
+                            <Link href={`/reservations/${reservation.id}`}>Voir</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/reservations/${reservation.id}`}>Edit</Link>
+                            <Link href={`/reservations/${reservation.id}`}>Modifier</Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive">Cancel</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive">Annuler</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -215,7 +215,7 @@ export function DataTable({ data }: DataTableProps) {
                     colSpan={7}
                     className="h-24 text-center text-muted-foreground"
                   >
-                    No reservations found.
+                    Aucune réservation trouvée.
                   </TableCell>
                 </TableRow>
               )}
@@ -224,7 +224,7 @@ export function DataTable({ data }: DataTableProps) {
         </div>
         <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground flex-1 text-sm">
-            Showing {filteredData.length} of {data.length} reservation{data.length !== 1 ? 's' : ''}.
+            Affichage de {filteredData.length} sur {data.length} réservation{data.length !== 1 ? 's' : ''}.
           </div>
         </div>
       </TabsContent>

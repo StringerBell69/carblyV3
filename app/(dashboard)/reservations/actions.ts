@@ -390,3 +390,100 @@ export async function resendPaymentLink(reservationId: string) {
     return { error: 'Failed to resend payment link' };
   }
 }
+
+export async function generateReservationContract(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get reservation
+    const reservation = await db.query.reservations.findFirst({
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
+    });
+
+    if (!reservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    // Check if reservation is paid
+    if (reservation.status === 'pending_payment' || reservation.status === 'draft') {
+      return { error: 'Reservation must be paid before generating contract' };
+    }
+
+    // Generate contract PDF
+    const { generateContractPDF } = await import('@/lib/pdf/generate');
+    const contractResult = await generateContractPDF(reservationId);
+
+    if (contractResult.error) {
+      return { error: contractResult.error };
+    }
+
+    // Get full reservation data for Yousign
+    const fullReservation = await db.query.reservations.findFirst({
+      where: eq(reservations.id, reservationId),
+      with: {
+        customer: true,
+        vehicle: true,
+      },
+    });
+
+    if (!fullReservation) {
+      return { error: 'Failed to fetch reservation details' };
+    }
+
+    // Send to Yousign for signature
+    const { createYousignSignatureRequest } = await import('@/lib/yousign');
+    const yousignResult = await createYousignSignatureRequest({
+      contractPdfUrl: contractResult.pdfUrl!,
+      customer: {
+        firstName: fullReservation.customer.firstName || '',
+        lastName: fullReservation.customer.lastName || '',
+        email: fullReservation.customer.email || '',
+        phone: fullReservation.customer.phone || undefined,
+      },
+      reservationId,
+    });
+
+    if (yousignResult.error) {
+      console.error('[generateReservationContract] Yousign error:', yousignResult.error);
+      // Continue even if Yousign fails - send email with PDF link
+    } else if (yousignResult.signatureRequestId) {
+      // Update contract with Yousign signature request ID
+      const { contracts } = await import('@/drizzle/schema');
+      await db
+        .update(contracts)
+        .set({
+          yousignSignatureRequestId: yousignResult.signatureRequestId,
+          updatedAt: new Date(),
+        })
+        .where(eq(contracts.reservationId, reservationId));
+
+      console.log('[generateReservationContract] Yousign signature request created:', yousignResult.signatureRequestId);
+    }
+
+    // Send confirmation email
+    const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
+    await sendPaymentConfirmedEmail({
+      to: fullReservation.customer.email,
+      customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+      vehicle: {
+        brand: fullReservation.vehicle.brand,
+        model: fullReservation.vehicle.model,
+      },
+      yousignLink: contractResult.pdfUrl,
+    });
+
+    revalidatePath(`/reservations/${reservationId}`);
+
+    return { success: true, contractUrl: contractResult.pdfUrl };
+  } catch (error) {
+    console.error('[generateReservationContract]', error);
+    return { error: 'Failed to generate contract' };
+  }
+}

@@ -16,7 +16,7 @@ export async function getDashboardStats() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // CA du mois
+    // CA du mois en cours (jusqu'à aujourd'hui)
     const revenueResult = await db
       .select({ total: sql<string>`COALESCE(SUM(${payments.amount}), 0)` })
       .from(payments)
@@ -25,7 +25,7 @@ export async function getDashboardStats() {
         and(
           eq(reservations.teamId, teamId),
           gte(payments.paidAt, startOfMonth),
-          lte(payments.paidAt, endOfMonth),
+          lte(payments.paidAt, now),
           eq(payments.status, 'succeeded')
         )
       );
@@ -131,10 +131,8 @@ export async function getMonthlyRevenue() {
     if (!teamId) {
       return { error: 'Unauthorized' };
     }
-    const now = new Date();
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    // Get revenue by month for the last 6 months
+    // Get all revenue by month (no time limit) - ordered by month
     const monthlyData = await db
       .select({
         month: sql<string>`TO_CHAR(${payments.paidAt}, 'YYYY-MM')`,
@@ -145,7 +143,6 @@ export async function getMonthlyRevenue() {
       .where(
         and(
           eq(reservations.teamId, teamId),
-          gte(payments.paidAt, sixMonthsAgo),
           eq(payments.status, 'succeeded')
         )
       )
@@ -161,5 +158,159 @@ export async function getMonthlyRevenue() {
   } catch (error) {
     console.error('[getMonthlyRevenue]', error);
     return { error: 'Failed to fetch monthly revenue' };
+  }
+}
+
+export async function getDashboardTrends() {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const sameDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, Math.min(dayOfMonth, new Date(now.getFullYear(), now.getMonth(), 0).getDate()));
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    // Revenue trend - même période (jour du mois) ce mois vs mois dernier
+    const currentMonthRevenue = await db
+      .select({ total: sql<string>`COALESCE(SUM(${payments.amount}), 0)` })
+      .from(payments)
+      .innerJoin(reservations, eq(payments.reservationId, reservations.id))
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(payments.paidAt, startOfCurrentMonth),
+          lte(payments.paidAt, now),
+          eq(payments.status, 'succeeded')
+        )
+      );
+
+    const lastMonthRevenue = await db
+      .select({ total: sql<string>`COALESCE(SUM(${payments.amount}), 0)` })
+      .from(payments)
+      .innerJoin(reservations, eq(payments.reservationId, reservations.id))
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(payments.paidAt, startOfLastMonth),
+          lte(payments.paidAt, sameDayLastMonth),
+          eq(payments.status, 'succeeded')
+        )
+      );
+
+    const currentRev = parseFloat(currentMonthRevenue[0]?.total || '0');
+    const lastRev = parseFloat(lastMonthRevenue[0]?.total || '0');
+    const revenueTrend = lastRev > 0 ? ((currentRev - lastRev) / lastRev) * 100 : 0;
+
+    // Réservations actives - comparaison avec le mois dernier
+    const currentMonthReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(reservations.createdAt, startOfCurrentMonth),
+          sql`${reservations.status} IN ('confirmed', 'in_progress', 'paid')`
+        )
+      );
+
+    const lastMonthReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          gte(reservations.createdAt, startOfLastMonth),
+          lte(reservations.createdAt, endOfLastMonth),
+          sql`${reservations.status} IN ('confirmed', 'in_progress', 'paid')`
+        )
+      );
+
+    const currentRes = currentMonthReservations[0]?.count || 0;
+    const lastRes = lastMonthReservations[0]?.count || 0;
+    const reservationsTrend = lastRes > 0 ? ((currentRes - lastRes) / lastRes) * 100 : 0;
+
+    // Taux de disponibilité des véhicules - ce mois vs mois dernier
+    // Calcul : nombre de véhicules disponibles / total véhicules
+    const totalVehicles = await db
+      .select({ count: count() })
+      .from(vehicles)
+      .where(eq(vehicles.teamId, teamId));
+
+    const total = totalVehicles[0]?.count || 0;
+
+    if (total === 0) {
+      return {
+        revenueTrend: Math.round(revenueTrend * 10) / 10,
+        reservationsTrend: Math.round(reservationsTrend * 10) / 10,
+        vehiclesTrend: 0,
+        occupancyTrend: 0,
+      };
+    }
+
+    // Réservations actives ce mois (en cours maintenant)
+    const currentActiveReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          eq(reservations.status, 'in_progress'),
+          lte(reservations.startDate, now),
+          gte(reservations.endDate, now)
+        )
+      );
+
+    // Réservations actives il y a un mois
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, dayOfMonth);
+    const lastMonthActiveReservations = await db
+      .select({ count: count() })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.teamId, teamId),
+          eq(reservations.status, 'in_progress'),
+          lte(reservations.startDate, oneMonthAgo),
+          gte(reservations.endDate, oneMonthAgo)
+        )
+      );
+
+    const currentActive = currentActiveReservations[0]?.count || 0;
+    const lastActive = lastMonthActiveReservations[0]?.count || 0;
+
+    // Taux d'occupation = (véhicules en cours de location / total véhicules) * 100
+    const currentOccupancy = total > 0 ? (currentActive / total) * 100 : 0;
+    const lastOccupancy = total > 0 ? (lastActive / total) * 100 : 0;
+
+    // Tendance d'occupation : différence en points de pourcentage
+    const occupancyTrend = currentOccupancy - lastOccupancy;
+
+    // Taux de disponibilité = 100 - taux d'occupation
+    const currentAvailability = 100 - currentOccupancy;
+    const lastAvailability = 100 - lastOccupancy;
+
+    // Tendance de disponibilité : différence en points de pourcentage
+    // Note : plus de disponibilité = tendance positive pour le client
+    const vehiclesTrend = currentAvailability - lastAvailability;
+
+    return {
+      revenueTrend: Math.round(revenueTrend * 10) / 10,
+      reservationsTrend: Math.round(reservationsTrend * 10) / 10,
+      vehiclesTrend: Math.round(vehiclesTrend * 10) / 10,
+      occupancyTrend: Math.round(occupancyTrend * 10) / 10,
+    };
+  } catch (error) {
+    console.error('[getDashboardTrends]', error);
+    return {
+      revenueTrend: 0,
+      reservationsTrend: 0,
+      vehiclesTrend: 0,
+      occupancyTrend: 0,
+    };
   }
 }
