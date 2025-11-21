@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { messageTemplates } from '@/drizzle/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { messageTemplates, hiddenTemplates } from '@/drizzle/schema';
+import { eq, and, desc, isNull, or, inArray, notInArray } from 'drizzle-orm';
 import { getCurrentTeamId } from '@/lib/session';
+import { seedDefaultTemplates } from '@/lib/seed/default-templates';
 
-// GET /api/templates - Get all templates for current team
+// GET /api/templates - Get all templates for current team (including non-hidden defaults)
 export async function GET() {
   try {
     const teamId = await getCurrentTeamId();
@@ -13,12 +14,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const templates = await db.query.messageTemplates.findMany({
+    // Ensure default templates exist
+    await seedDefaultTemplates();
+
+    // Get team's custom templates
+    const teamTemplates = await db.query.messageTemplates.findMany({
       where: eq(messageTemplates.teamId, teamId),
       orderBy: desc(messageTemplates.createdAt),
     });
 
-    return NextResponse.json(templates);
+    // Get hidden template IDs for this team
+    const hidden = await db.query.hiddenTemplates.findMany({
+      where: eq(hiddenTemplates.teamId, teamId),
+    });
+    const hiddenIds = hidden.map((h) => h.templateId);
+
+    // Get default templates (not hidden by this team)
+    let defaultTemplates;
+    if (hiddenIds.length > 0) {
+      defaultTemplates = await db.query.messageTemplates.findMany({
+        where: and(
+          eq(messageTemplates.isDefault, true),
+          notInArray(messageTemplates.id, hiddenIds)
+        ),
+        orderBy: desc(messageTemplates.createdAt),
+      });
+    } else {
+      defaultTemplates = await db.query.messageTemplates.findMany({
+        where: eq(messageTemplates.isDefault, true),
+        orderBy: desc(messageTemplates.createdAt),
+      });
+    }
+
+    // Combine and return (team templates first, then defaults)
+    const allTemplates = [...teamTemplates, ...defaultTemplates];
+
+    return NextResponse.json(allTemplates);
   } catch (error) {
     console.error('[GET /api/templates]', error);
     return NextResponse.json(
@@ -62,6 +93,7 @@ export async function POST(req: NextRequest) {
         type,
         subject: type === 'email' ? subject : null,
         message,
+        isDefault: false, // Team templates are not defaults
       })
       .returning();
 

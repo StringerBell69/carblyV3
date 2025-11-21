@@ -51,6 +51,7 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   reservations: many(reservations),
   messageTemplates: many(messageTemplates),
   communications: many(communications),
+  hiddenTemplates: many(hiddenTemplates),
 }));
 
 // Users
@@ -290,11 +291,12 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 // Message Templates
 export const messageTemplates = pgTable('message_templates', {
   id: uuid('id').primaryKey().defaultRandom(),
-  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }), // Nullable for system templates
   name: text('name').notNull(),
   type: messageTypeEnum('type').notNull(),
   subject: text('subject'), // Only for emails
   message: text('message').notNull(),
+  isDefault: boolean('is_default').default(false).notNull(), // True for system-wide default templates
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -303,6 +305,25 @@ export const messageTemplatesRelations = relations(messageTemplates, ({ one }) =
   team: one(teams, {
     fields: [messageTemplates.teamId],
     references: [teams.id],
+  }),
+}));
+
+// Hidden Templates (tracks which default templates each team has hidden)
+export const hiddenTemplates = pgTable('hidden_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  templateId: uuid('template_id').references(() => messageTemplates.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const hiddenTemplatesRelations = relations(hiddenTemplates, ({ one }) => ({
+  team: one(teams, {
+    fields: [hiddenTemplates.teamId],
+    references: [teams.id],
+  }),
+  template: one(messageTemplates, {
+    fields: [hiddenTemplates.templateId],
+    references: [messageTemplates.id],
   }),
 }));
 
@@ -345,6 +366,7 @@ export type Contract = typeof contracts.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type MessageTemplate = typeof messageTemplates.$inferSelect;
 export type Communication = typeof communications.$inferSelect;
+export type HiddenTemplate = typeof hiddenTemplates.$inferSelect;
 
 export type NewOrganization = typeof organizations.$inferInsert;
 export type NewTeam = typeof teams.$inferInsert;
@@ -357,3 +379,4 @@ export type NewContract = typeof contracts.$inferInsert;
 export type NewPayment = typeof payments.$inferInsert;
 export type NewMessageTemplate = typeof messageTemplates.$inferInsert;
 export type NewCommunication = typeof communications.$inferInsert;
+export type NewHiddenTemplate = typeof hiddenTemplates.$inferInsert;
