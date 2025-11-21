@@ -52,7 +52,7 @@ export function DashboardNav({ user }: { user: User }) {
             <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold shadow-lg">
               C
             </div>
-            <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
+            <span className="text-xl font-bold">Carbly</span>
           </Link>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -116,7 +116,7 @@ export function DashboardNav({ user }: { user: User }) {
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg">
               C
             </div>
-            <span className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
+            <span className="text-2xl font-bold">Carbly</span>
           </Link>
           <nav className="flex flex-1 flex-col">
             <ul className="flex flex-1 flex-col gap-y-2">

@@ -14,7 +14,7 @@ export default function HomePage() {
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold text-lg shadow-lg">
               C
             </div>
-            <span className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
+            <span className="text-2xl font-bold">Carbly</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login">
@@ -65,19 +65,19 @@ export default function HomePage() {
 
         <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto animate-fade-in-up stagger-4 opacity-0">
           <div className="text-center">
-            <div className="text-4xl font-bold gradient-text mb-2" style={{ fontFamily: 'var(--font-heading)' }}>500+</div>
+            <div className="text-4xl font-bold gradient-text mb-2">500+</div>
             <div className="text-sm text-muted-foreground">Véhicules gérés</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold gradient-text mb-2" style={{ fontFamily: 'var(--font-heading)' }}>50+</div>
+            <div className="text-4xl font-bold gradient-text mb-2">50+</div>
             <div className="text-sm text-muted-foreground">Agences actives</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold gradient-text mb-2" style={{ fontFamily: 'var(--font-heading)' }}>10k+</div>
+            <div className="text-4xl font-bold gradient-text mb-2">10k+</div>
             <div className="text-sm text-muted-foreground">Réservations</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold gradient-text mb-2" style={{ fontFamily: 'var(--font-heading)' }}>98%</div>
+            <div className="text-4xl font-bold gradient-text mb-2">98%</div>
             <div className="text-sm text-muted-foreground">Satisfaction</div>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="container mx-auto px-4 py-32 relative">
         <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Tout ce dont vous avez <span className="gradient-text">besoin</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -142,7 +142,7 @@ export default function HomePage() {
                 <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-shadow`}>
                   <Icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3" style={{ fontFamily: 'var(--font-heading)' }}>
+                <h3 className="text-xl font-bold mb-3">
                   {feature.title}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -159,7 +159,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-3xl -z-10"></div>
 
         <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Tarifs <span className="gradient-text">simples</span> et transparents
           </h2>
           <p className="text-xl text-muted-foreground">
@@ -185,12 +185,12 @@ export default function HomePage() {
                 </div>
               )}
 
-              <h3 className="text-2xl font-bold mb-2" style={{ fontFamily: 'var(--font-heading)' }}>
+              <h3 className="text-2xl font-bold mb-2">
                 {plan.name}
               </h3>
 
               <div className="mt-6 mb-8">
-                <span className="text-5xl font-bold gradient-text" style={{ fontFamily: 'var(--font-heading)' }}>
+                <span className="text-5xl font-bold gradient-text">
                   {plan.price}€
                 </span>
                 <span className="text-muted-foreground ml-2">/mois</span>
@@ -232,7 +232,7 @@ export default function HomePage() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h2 className="text-4xl md:text-6xl font-bold mb-6">
             Prêt à <span className="gradient-text">transformer</span> votre agence ?
           </h2>
           <p className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
@@ -255,7 +255,7 @@ export default function HomePage() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-light rounded-lg flex items-center justify-center text-primary-foreground font-bold shadow-lg">
                 C
               </div>
-              <span className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
+              <span className="text-lg font-bold">Carbly</span>
             </div>
             <p className="text-muted-foreground text-sm">
               © 2024 Carbly. Tous droits réservés.

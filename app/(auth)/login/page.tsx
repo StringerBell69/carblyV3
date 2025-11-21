@@ -64,13 +64,13 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center text-primary-foreground font-bold text-xl shadow-xl">
             C
           </div>
-          <span className="text-3xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Carbly</span>
+          <span className="text-3xl font-bold">Carbly</span>
         </Link>
 
         <div className="card-elevated rounded-3xl overflow-hidden bg-card">
           <div className="p-8">
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-heading)' }}>
+              <h1 className="text-3xl font-bold mb-2">
                 Bienvenue
               </h1>
               <p className="text-muted-foreground">
