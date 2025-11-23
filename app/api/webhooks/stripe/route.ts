@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
-import { teams, reservations, payments } from '@/drizzle/schema';
+import { teams, reservations, payments, contracts } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { generateContractPDF } from '@/lib/pdf/generate';
 import { sendPaymentConfirmedEmail } from '@/lib/resend';
+import { createYousignSignatureRequest } from '@/lib/yousign';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -107,6 +108,40 @@ export async function POST(req: NextRequest) {
               } else {
                 console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
                 contractPdfUrl = contractResult.pdfUrl;
+
+                // Initiate Yousign signature request
+                if (fullReservation) {
+                  try {
+                    const yousignResult = await createYousignSignatureRequest({
+                      contractPdfUrl: contractResult.pdfUrl!,
+                      customer: {
+                        firstName: fullReservation.customer.firstName || '',
+                        lastName: fullReservation.customer.lastName || '',
+                        email: fullReservation.customer.email || '',
+                        phone: fullReservation.customer.phone || undefined,
+                      },
+                      reservationId: metadata.reservationId,
+                    });
+
+                    if (yousignResult.error) {
+                      console.error('[Stripe Webhook] Yousign error:', yousignResult.error);
+                    } else if (yousignResult.signatureRequestId) {
+                      // Update contract with Yousign signature request ID
+                      await db
+                        .update(contracts)
+                        .set({
+                          yousignSignatureRequestId: yousignResult.signatureRequestId,
+                          updatedAt: new Date(),
+                        })
+                        .where(eq(contracts.reservationId, metadata.reservationId));
+
+                      console.log('[Stripe Webhook] Yousign signature request created:', yousignResult.signatureRequestId);
+                    }
+                  } catch (yousignError) {
+                    console.error('[Stripe Webhook] Failed to initiate Yousign:', yousignError);
+                    // Continue even if Yousign fails
+                  }
+                }
               }
             } else {
               console.log('[Stripe Webhook] Deposit payment only, contract will be generated manually by agency');
