@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Building2, Users, CreditCard, Check } from 'lucide-react';
-import { createOrganization, createTeam, createStripeCheckoutSession } from './actions';
+import { AlertCircle, Building2, Users, CreditCard, Check, Loader2 } from 'lucide-react';
+import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
 
 type Plan = 'starter' | 'pro' | 'business';
 type BillingInterval = 'monthly' | 'yearly';
@@ -64,8 +64,9 @@ const PLANS = [
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [existingTeamStatus, setExistingTeamStatus] = useState<any>(null);
 
   const [organizationName, setOrganizationName] = useState('');
   const [organizationId, setOrganizationId] = useState('');
@@ -76,6 +77,24 @@ export default function OnboardingPage() {
 
   const [selectedPlan, setSelectedPlan] = useState<Plan>('pro');
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+
+  // Check if user already has a team
+  useEffect(() => {
+    checkForExistingTeam();
+  }, []);
+
+  const checkForExistingTeam = async () => {
+    try {
+      const result = await checkExistingTeam();
+      if (result.team) {
+        setExistingTeamStatus(result.team);
+      }
+    } catch (err) {
+      console.error('Error checking existing team:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +172,157 @@ export default function OnboardingPage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking for existing team
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+              <p className="text-gray-600">Vérification de votre compte...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show existing team status if found
+  if (existingTeamStatus) {
+    const needsPayment = !existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active';
+    const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Finalisation de votre compte</CardTitle>
+              <CardDescription>
+                Votre équipe existe déjà. Complétez les étapes restantes pour accéder au tableau de bord.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-900">Organisation créée</p>
+                    <p className="text-sm text-green-700">{existingTeamStatus.organization?.name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-900">Agence créée</p>
+                    <p className="text-sm text-green-700">{existingTeamStatus.name}</p>
+                  </div>
+                </div>
+
+                {needsPayment ? (
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">Paiement requis</p>
+                      <p className="text-sm text-yellow-700">Votre abonnement n'est pas encore activé</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Abonnement actif</p>
+                      <p className="text-sm text-green-700">Plan {existingTeamStatus.plan}</p>
+                    </div>
+                  </div>
+                )}
+
+                {needsConnect && !needsPayment ? (
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
+                      <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
+                    </div>
+                  </div>
+                ) : !needsPayment && !needsConnect ? (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Compte de paiement configuré</p>
+                      <p className="text-sm text-green-700">Vous pouvez recevoir des paiements</p>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-3">
+                {needsPayment && (
+                  <Button
+                    onClick={async () => {
+                      setLoading(true);
+                      setError('');
+                      try {
+                        const result = await createStripeCheckoutSession({
+                          organizationId: existingTeamStatus.organizationId,
+                          teamId: existingTeamStatus.id,
+                          plan: existingTeamStatus.plan,
+                          billingInterval: 'monthly',
+                        });
+
+                        if (result.error) {
+                          throw new Error(result.error);
+                        }
+
+                        if (result.url) {
+                          window.location.href = result.url;
+                        }
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Erreur lors de la création de la session de paiement');
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? 'Redirection...' : 'Procéder au paiement'}
+                  </Button>
+                )}
+
+                {!needsPayment && needsConnect && (
+                  <Button
+                    onClick={() => router.push('/onboarding/connect-refresh')}
+                    className="w-full"
+                  >
+                    Configurer les paiements
+                  </Button>
+                )}
+
+                {!needsPayment && !needsConnect && (
+                  <Button
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full"
+                  >
+                    Accéder au tableau de bord
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">

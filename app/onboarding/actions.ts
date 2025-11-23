@@ -207,3 +207,36 @@ export async function completeOnboarding(sessionId: string) {
     return { error: 'Failed to complete onboarding' };
   }
 }
+
+export async function checkExistingTeam() {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get user's team from DB
+    const userTeam = await db.query.teamMembers.findFirst({
+      where: eq(teamMembers.userId, session.user.id),
+      with: {
+        team: {
+          with: {
+            organization: true,
+          },
+        },
+      },
+    });
+
+    if (!userTeam?.team) {
+      return { team: null };
+    }
+
+    return { team: userTeam.team };
+  } catch (error) {
+    console.error('[checkExistingTeam]', error);
+    return { error: 'Failed to check existing team' };
+  }
+}

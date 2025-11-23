@@ -22,6 +22,24 @@ export default async function DashboardLayout({
     redirect('/onboarding');
   }
 
+  // Check if team has completed onboarding
+  // User might have created team but not completed payment or Stripe Connect setup
+  const needsOnboarding =
+    !team.stripeSubscriptionId ||
+    team.subscriptionStatus !== 'active' ||
+    !team.stripeConnectOnboarded;
+
+  if (needsOnboarding) {
+    // Redirect to appropriate page based on onboarding status
+    if (!team.stripeSubscriptionId || team.subscriptionStatus !== 'active') {
+      // Payment not completed - redirect to onboarding page that will show current status
+      redirect('/onboarding');
+    } else if (!team.stripeConnectOnboarded) {
+      // Stripe Connect not completed - redirect to connect refresh page
+      redirect('/onboarding/connect-refresh');
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardNav user={session.user} />
