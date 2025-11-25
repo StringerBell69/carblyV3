@@ -36,6 +36,7 @@ export default function LoginPage() {
 
       // Check user data to determine redirect
       const user = result.data?.user as any;
+      console.log(user);
 
       if (user?.isSuperAdmin) {
         router.push('/admin');

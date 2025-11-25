@@ -97,6 +97,18 @@ export default function OnboardingPage() {
     checkForExistingTeam();
   }, []);
 
+  // Redirect to dashboard if everything is set up
+  useEffect(() => {
+    if (existingTeamStatus && !loading) {
+      const needsPayment = !existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active';
+      const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
+
+      if (!needsPayment && !needsConnect) {
+        router.push('/dashboard');
+      }
+    }
+  }, [existingTeamStatus, loading, router]);
+
   const checkForExistingTeam = async () => {
     try {
       const result = await checkExistingTeam();
@@ -262,7 +274,7 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                {needsConnect && !needsPayment ? (
+                {needsConnect && !needsPayment && (
                   <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                     <AlertCircle className="w-5 h-5 text-yellow-600" />
                     <div className="flex-1">
@@ -270,15 +282,7 @@ export default function OnboardingPage() {
                       <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
                     </div>
                   </div>
-                ) : !needsPayment && !needsConnect ? (
-                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <Check className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-900">Compte de paiement configuré</p>
-                      <p className="text-sm text-green-700">Vous pouvez recevoir des paiements</p>
-                    </div>
-                  </div>
-                ) : null}
+                )}
               </div>
 
               {error && (
@@ -327,15 +331,6 @@ export default function OnboardingPage() {
                     className="w-full"
                   >
                     Configurer les paiements
-                  </Button>
-                )}
-
-                {!needsPayment && !needsConnect && (
-                  <Button
-                    onClick={() => router.push('/dashboard')}
-                    className="w-full"
-                  >
-                    Accéder au tableau de bord
                   </Button>
                 )}
               </div>

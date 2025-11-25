@@ -40,10 +40,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
             {formatCurrency(stats.revenue)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
-              {revenueTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {revenueTrend >= 0 ? '+' : ''}{revenueTrend}%
-            </Badge>
+          
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -64,10 +61,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
             {stats.activeReservations}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
-              {reservationsTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {reservationsTrend >= 0 ? '+' : ''}{reservationsTrend}%
-            </Badge>
+           
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -88,10 +82,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
             {stats.availableVehicles}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
-              {vehiclesTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {vehiclesTrend >= 0 ? '+' : ''}{Math.abs(vehiclesTrend).toFixed(1)}pts
-            </Badge>
+           
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -112,10 +103,7 @@ export function SectionCards({ stats, trends }: SectionCardsProps) {
             {stats.occupancyRate}%
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
-              {occupancyTrend >= 0 ? <IconTrendingUp /> : <IconTrendingDown />}
-              {occupancyTrend >= 0 ? '+' : ''}{Math.abs(occupancyTrend).toFixed(1)}pts
-            </Badge>
+            
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
