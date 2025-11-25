@@ -22,7 +22,7 @@ const PLANS = [
     maxVehicles: 3,
     features: [
       '3 véhicules maximum',
-      '5 réservations/mois',
+      '10 réservations/mois',
       'Paiements Stripe Connect',
       'Frais: 4,9% + 0,50€',
       'Support communauté',

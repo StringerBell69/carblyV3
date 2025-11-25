@@ -53,7 +53,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     limits: {
       vehicles: 3,
       users: 1,
-      reservationsPerMonth: 5,
+      reservationsPerMonth: 10,
       emailTemplates: 1,
     },
     features: {

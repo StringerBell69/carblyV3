@@ -20,7 +20,7 @@ export const PLANS = {
     maxVehicles: 3,
     features: [
       'Jusqu\'à 3 véhicules',
-      '5 réservations/mois',
+      '10 réservations/mois',
       'Paiements Stripe Connect',
       'Frais: 4,9% + 0,50€',
       'Support communauté',
