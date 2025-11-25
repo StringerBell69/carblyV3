@@ -47,6 +47,9 @@ export async function POST(
       ? parseFloat(reservation.depositAmount)
       : parseFloat(reservation.totalAmount);
 
+    // Get team plan (default to 'free' if not set)
+    const teamPlan = (reservation.team.plan || 'free') as 'free' | 'starter' | 'pro' | 'business';
+
     // Create Stripe Connect Checkout Session
     const { url, error } = await createReservationCheckoutSession({
       amount: amountToPay,
@@ -54,6 +57,7 @@ export async function POST(
       customerEmail: reservation.customer.email,
       reservationId: reservation.id,
       teamId: reservation.teamId,
+      teamPlan,
       successUrl: `${process.env.NEXT_PUBLIC_URL}/reservation/${token}/success`,
       cancelUrl: `${process.env.NEXT_PUBLIC_URL}/reservation/${token}`,
       description: `Location ${reservation.vehicle.brand} ${reservation.vehicle.model} - ${reservation.customer.firstName} ${reservation.customer.lastName}`,
