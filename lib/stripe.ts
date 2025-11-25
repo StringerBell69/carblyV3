@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { calculatePlatformFees, type PlanType } from './pricing-config';
 
 // Allow undefined during build time
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
@@ -8,7 +9,7 @@ export const stripe = new Stripe(stripeSecretKey, {
   typescript: true,
 });
 
-// Platform application fee: 0.99€ per transaction
+// Platform application fee: 0.99€ per transaction (DEPRECATED - use calculatePlatformFees instead)
 export const PLATFORM_FEE_AMOUNT = 99; // in cents
 
 // Plan configurations for platform subscriptions
@@ -181,7 +182,7 @@ export async function checkConnectAccountStatus(
 /**
  * Create a Checkout Session for reservation payment
  * - Amount goes to the connected account
- * - Platform takes 0.99€ application fee
+ * - Platform takes application fee based on plan
  * - Stripe fees are separate and paid by the connected account
  */
 export async function createReservationCheckoutSession({
@@ -190,6 +191,7 @@ export async function createReservationCheckoutSession({
   customerEmail,
   reservationId,
   teamId,
+  teamPlan, // Team plan to calculate fees
   successUrl,
   cancelUrl,
   description,
@@ -200,6 +202,7 @@ export async function createReservationCheckoutSession({
   customerEmail: string;
   reservationId: string;
   teamId: string;
+  teamPlan: PlanType;
   successUrl: string;
   cancelUrl: string;
   description: string;
@@ -207,7 +210,10 @@ export async function createReservationCheckoutSession({
 }): Promise<{ url?: string; sessionId?: string; error?: string }> {
   try {
     const amountInCents = Math.round(amount * 100);
-    const platformFee = PLATFORM_FEE_AMOUNT; // 0.99€
+
+    // Calculate platform fees based on team plan
+    const fees = calculatePlatformFees(amount, teamPlan);
+    const platformFeeInCents = Math.round(fees.totalFee * 100);
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
@@ -226,9 +232,9 @@ export async function createReservationCheckoutSession({
           currency: 'eur',
           product_data: {
             name: 'Frais Carbly',
-            description: '0,99€ + frais bancaires',
+            description: `${fees.percentageFee}% + ${fees.fixedFee}€`,
           },
-          unit_amount: platformFee,
+          unit_amount: platformFeeInCents,
         },
         quantity: 1,
       },
@@ -240,19 +246,24 @@ export async function createReservationCheckoutSession({
       customer_email: customerEmail,
       line_items: lineItems,
       payment_intent_data: {
-        application_fee_amount: platformFee,
+        application_fee_amount: platformFeeInCents,
         transfer_data: {
           destination: connectedAccountId,
         },
         metadata: {
           reservationId,
           teamId,
+          teamPlan,
+          platformFeePercentage: String(fees.percentageFee),
+          platformFeeFixed: String(fees.fixedFee),
+          platformFeeTotal: String(fees.totalFee),
           type: 'reservation_payment',
         },
       },
       metadata: {
         reservationId,
         teamId,
+        teamPlan,
       },
       success_url: successUrl,
       cancel_url: cancelUrl,

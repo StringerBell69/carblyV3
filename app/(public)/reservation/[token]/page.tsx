@@ -22,6 +22,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 
 export default function PublicReservationPage() {
   const params = useParams();
@@ -112,6 +113,11 @@ export default function PublicReservationPage() {
       </div>
     );
   }
+
+  // Calculate platform fees based on team plan
+  const teamPlan = (reservation?.team?.plan || 'free') as PlanType;
+  const paymentAmount = parseFloat(reservation?.depositAmount || reservation?.totalAmount || '0');
+  const platformFees = calculatePlatformFees(paymentAmount, teamPlan);
 
   // Reservation Hub for paid reservations
   if (reservation.status !== 'pending_payment' && reservation.status !== 'draft') {
@@ -420,20 +426,9 @@ export default function PublicReservationPage() {
               </div>
 
               <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-gray-600">Frais bancaires (estimation)</span>
-                    <span className="text-xs text-gray-400">~1.4% + 0.25€</span>
-                  </div>
-                  <span className="text-gray-600">
-                    ~{formatCurrency(
-                      Math.round((parseFloat(reservation.depositAmount || reservation.totalAmount) * 0.014 + 0.25) * 100) / 100
-                    )}
-                  </span>
-                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Frais Carbly</span>
-                  <span className="text-gray-600">0,99€</span>
+                  <span className="text-gray-600">{formatCurrency(platformFees.totalFee)}</span>
                 </div>
                 <p className="text-xs text-gray-500 italic pt-1">
                   Les frais sont facturés séparément pour la transparence
@@ -445,9 +440,7 @@ export default function PublicReservationPage() {
                   <span className="font-bold text-lg">Total à payer</span>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-primary">
-                      {formatCurrency(
-                        parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99
-                      )}
+                      {formatCurrency(paymentAmount + platformFees.totalFee)}
                     </div>
                     <p className="text-xs text-gray-500">+ frais de paiement</p>
                   </div>
@@ -477,7 +470,7 @@ export default function PublicReservationPage() {
                   Redirection vers le paiement...
                 </div>
               ) : (
-                `Payer ${formatCurrency(parseFloat(reservation.depositAmount || reservation.totalAmount) + 0.99)}`
+                `Payer ${formatCurrency(paymentAmount + platformFees.totalFee)}`
               )}
             </Button>
           </CardContent>

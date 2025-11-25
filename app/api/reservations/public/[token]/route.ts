@@ -16,6 +16,7 @@ export async function GET(
         vehicle: true,
         customer: true,
         contracts: true,
+        team: true, // Include team to get the plan
       },
     });
 
