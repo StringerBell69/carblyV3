@@ -9,6 +9,7 @@ import { generateRandomToken, calculateRentalPrice } from '@/lib/utils';
 import { sendReservationPaymentLink } from '@/lib/resend';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { checkReservationLimit, PlanLimitError } from '@/lib/plan-limits';
 
 export async function getReservations(filters?: {
   status?: string;
@@ -137,6 +138,21 @@ export async function createReservation(data: {
 
     if (!teamId) {
       return { error: 'Unauthorized' };
+    }
+
+    // Check reservation limit using new plan limits system
+    try {
+      await checkReservationLimit(teamId);
+    } catch (error) {
+      if (error instanceof PlanLimitError) {
+        return {
+          error: error.message,
+          limitType: error.limitType,
+          currentPlan: error.currentPlan,
+          suggestedPlan: error.suggestedPlan,
+        };
+      }
+      throw error;
     }
 
     // Get vehicle

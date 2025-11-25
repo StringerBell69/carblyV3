@@ -167,11 +167,11 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {Object.entries(PLANS).map(([key, plan], index) => (
             <div
               key={key}
-              className={`card-elevated rounded-3xl p-8 bg-card relative overflow-hidden transition-all duration-300 ${
+              className={`card-elevated rounded-3xl p-6 bg-card relative overflow-hidden transition-all duration-300 ${
                 key === 'pro' ? 'md:-translate-y-4 shadow-2xl' : ''
               }`}
             >
@@ -180,43 +180,43 @@ export default function HomePage() {
               )}
 
               {key === 'pro' && (
-                <div className="bg-gradient-to-r from-primary to-primary-light text-primary-foreground text-xs font-bold px-4 py-1.5 rounded-full w-fit mb-4 shadow-lg">
+                <div className="bg-gradient-to-r from-primary to-primary-light text-primary-foreground text-xs font-bold px-3 py-1 rounded-full w-fit mb-3 shadow-lg">
                   ⭐ POPULAIRE
                 </div>
               )}
 
-              <h3 className="text-2xl font-bold mb-2">
+              <h3 className="text-xl font-bold mb-2 capitalize">
                 {plan.name}
               </h3>
 
-              <div className="mt-6 mb-8">
-                <span className="text-5xl font-bold gradient-text">
+              <div className="mt-4 mb-6">
+                <span className="text-4xl font-bold gradient-text">
                   {plan.price}€
                 </span>
-                <span className="text-muted-foreground ml-2">/mois</span>
+                <span className="text-muted-foreground ml-2 text-sm">/mois</span>
               </div>
 
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-3 mb-6 min-h-[200px]">
                 {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-primary text-sm">✓</span>
+                  <li key={i} className="flex items-start gap-2">
+                    <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-primary text-xs">✓</span>
                     </div>
-                    <span className="text-sm leading-relaxed">{feature}</span>
+                    <span className="text-xs leading-relaxed">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <Link href="/signup" className="block">
                 <Button
-                  className={`w-full py-6 text-base font-semibold transition-all ${
+                  className={`w-full py-5 text-sm font-semibold transition-all ${
                     key === 'pro'
                       ? 'bg-gradient-to-r from-primary to-primary-light hover:shadow-xl text-primary-foreground'
                       : 'border-2 border-primary/30 hover:bg-primary/10'
                   }`}
                   variant={key === 'pro' ? 'default' : 'outline'}
                 >
-                  Commencer
+                  {key === 'free' ? 'Commencer gratuitement' : 'Commencer'}
                 </Button>
               </Link>
             </div>
