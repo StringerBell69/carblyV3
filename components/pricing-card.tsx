@@ -107,7 +107,7 @@ export function PricingCard({ plan, config, highlighted }: PricingCardProps) {
             {config.features.checkinCheckout && (
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span>Check-in/Check-out avec photos</span>
+                <span>Check-in/Check-out avec photos (prochainement)</span>
               </li>
             )}
             {config.features.cautionOnline && (
@@ -125,7 +125,7 @@ export function PricingCard({ plan, config, highlighted }: PricingCardProps) {
             {config.features.identityVerification && (
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span>Vérification d&apos;identité</span>
+                <span>Vérification d&apos;identité (prochainement)</span>
               </li>
             )}
             {config.features.loyaltyProgram && (

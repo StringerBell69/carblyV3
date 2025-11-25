@@ -194,6 +194,11 @@ export default function HomePage() {
                   {plan.price}€
                 </span>
                 <span className="text-muted-foreground ml-2 text-sm">/mois</span>
+                {key !== 'free' && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    2 mois offerts si paiement annuel
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-3 mb-6 min-h-[200px]">
