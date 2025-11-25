@@ -5,6 +5,7 @@ import { vehicles } from '@/drizzle/schema';
 import { getCurrentTeamId } from '@/lib/session';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { checkVehicleLimit, PlanLimitError } from '@/lib/plan-limits';
 
 export async function getVehicles(filters?: {
   status?: string;
@@ -86,22 +87,19 @@ export async function createVehicle(data: {
       return { error: 'Unauthorized' };
     }
 
-    // Check vehicle limit
-    const team = await db.query.teams.findFirst({
-      where: (teams, { eq }) => eq(teams.id, teamId),
-    });
-
-    if (!team) {
-      return { error: 'Team not found' };
-    }
-
-    const vehicleCount = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(vehicles)
-      .where(eq(vehicles.teamId, teamId));
-
-    if (Number(vehicleCount[0]?.count || 0) >= team.maxVehicles) {
-      return { error: `Limite de véhicules atteinte (${team.maxVehicles} max)` };
+    // Check vehicle limit using new plan limits system
+    try {
+      await checkVehicleLimit(teamId);
+    } catch (error) {
+      if (error instanceof PlanLimitError) {
+        return {
+          error: error.message,
+          limitType: error.limitType,
+          currentPlan: error.currentPlan,
+          suggestedPlan: error.suggestedPlan,
+        };
+      }
+      throw error;
     }
 
     // Create vehicle
