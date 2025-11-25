@@ -10,21 +10,35 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Building2, Users, CreditCard, Check, Loader2 } from 'lucide-react';
 import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
 
-type Plan = 'starter' | 'pro' | 'business';
+type Plan = 'free' | 'starter' | 'pro' | 'business';
 type BillingInterval = 'monthly' | 'yearly';
 
 const PLANS = [
+  {
+    id: 'free' as Plan,
+    name: 'Free',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    maxVehicles: 3,
+    features: [
+      '3 véhicules maximum',
+      '5 réservations/mois',
+      'Paiements Stripe Connect',
+      'Frais: 4,9% + 0,50€',
+      'Support communauté',
+    ],
+  },
   {
     id: 'starter' as Plan,
     name: 'Starter',
     monthlyPrice: 49,
     yearlyPrice: 490, // 10 mois au prix de 12 (2 mois offerts)
-    maxVehicles: 5,
+    maxVehicles: 10,
     features: [
-      '5 véhicules maximum',
+      '10 véhicules maximum',
       'Réservations illimitées',
-      'Lien de paiement',
-      'Signature électronique',
+      'Acomptes configurables',
+      'Contrats PDF + Signature électronique',
       'Support email',
     ],
   },
@@ -33,12 +47,12 @@ const PLANS = [
     name: 'Pro',
     monthlyPrice: 99,
     yearlyPrice: 990, // 10 mois au prix de 12 (2 mois offerts)
-    maxVehicles: 20,
+    maxVehicles: 25,
     features: [
-      '20 véhicules maximum',
+      '25 véhicules maximum',
       'Tout Starter +',
       'Pré-autorisation caution',
-      'Vérification identité Stripe',
+      'Vérification identité (prochainement)',
       'Notifications SMS',
       'Support prioritaire',
     ],
@@ -152,6 +166,12 @@ export default function OnboardingPage() {
     setError('');
 
     try {
+      // If FREE plan, skip Stripe checkout and redirect to dashboard
+      if (selectedPlan === 'free') {
+        router.push('/dashboard');
+        return;
+      }
+
       const result = await createStripeCheckoutSession({
         organizationId,
         teamId,
@@ -191,7 +211,9 @@ export default function OnboardingPage() {
 
   // Show existing team status if found
   if (existingTeamStatus) {
-    const needsPayment = !existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active';
+    // FREE plan doesn't need payment
+    const isFree = existingTeamStatus.plan === 'free';
+    const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
     const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
     return (

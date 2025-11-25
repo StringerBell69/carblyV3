@@ -2,7 +2,7 @@ import { pgTable, uuid, text, timestamp, boolean, integer, decimal, jsonb, pgEnu
 import { relations } from 'drizzle-orm';
 
 // Enums
-export const planEnum = pgEnum('plan', ['starter', 'pro', 'business']);
+export const planEnum = pgEnum('plan', ['free', 'starter', 'pro', 'business']);
 export const vehicleStatusEnum = pgEnum('vehicle_status', ['available', 'rented', 'maintenance', 'out_of_service']);
 export const reservationStatusEnum = pgEnum('reservation_status', ['draft', 'pending_payment', 'paid', 'confirmed', 'in_progress', 'completed', 'cancelled']);
 export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'total', 'caution', 'insurance']);
@@ -30,8 +30,8 @@ export const teams = pgTable('teams', {
   name: text('name').notNull(),
   address: text('address'),
   logo: text('logo'),
-  plan: planEnum('plan').default('starter').notNull(),
-  maxVehicles: integer('max_vehicles').default(5).notNull(),
+  plan: planEnum('plan').default('free').notNull(),
+  maxVehicles: integer('max_vehicles').default(3).notNull(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
   subscriptionStatus: text('subscription_status').default('active'), // active, past_due, canceled
   stripeConnectAccountId: text('stripe_connect_account_id').unique(),

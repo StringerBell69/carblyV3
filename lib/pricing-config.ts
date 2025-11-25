@@ -78,7 +78,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     subscription: { monthly: 49, yearly: 490 },
     platformFees: { percentageFee: 2.9, fixedFee: 0.50 },
     limits: {
-      vehicles: 25,
+      vehicles: 10,
       users: 3,
       reservationsPerMonth: null,
       emailTemplates: null,
@@ -108,7 +108,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     subscription: { monthly: 99, yearly: 990 },
     platformFees: { percentageFee: 1.9, fixedFee: 0.30 },
     limits: {
-      vehicles: 100,
+      vehicles: 25,
       users: 10,
       reservationsPerMonth: null,
       emailTemplates: null,
