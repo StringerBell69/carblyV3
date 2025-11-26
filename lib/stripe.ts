@@ -215,6 +215,12 @@ export async function createReservationCheckoutSession({
     const fees = calculatePlatformFees(amount, teamPlan);
     const platformFeeInCents = Math.round(fees.totalFee * 100);
 
+    console.log('[Stripe] Creating checkout session with metadata:', {
+      reservationId,
+      teamId,
+      teamPlan,
+    });
+
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
         price_data: {
@@ -272,6 +278,12 @@ export async function createReservationCheckoutSession({
           message: 'Paiement sécurisé géré par Carbly',
         },
       },
+    });
+
+    console.log('[Stripe] Checkout session created:', {
+      sessionId: session.id,
+      url: session.url,
+      metadata: session.metadata,
     });
 
     return { url: session.url || undefined, sessionId: session.id };
