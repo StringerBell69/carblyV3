@@ -50,6 +50,11 @@ export async function POST(
     // Get team plan (default to 'free' if not set)
     const teamPlan = (reservation.team.plan || 'free') as 'free' | 'starter' | 'pro' | 'business';
 
+    console.log('[Checkout] Creating session for reservation:', reservation.id);
+    console.log('[Checkout] Team ID:', reservation.teamId);
+    console.log('[Checkout] Team Plan:', teamPlan);
+    console.log('[Checkout] Amount to pay:', amountToPay);
+
     // Create Stripe Connect Checkout Session
     const { url, error } = await createReservationCheckoutSession({
       amount: amountToPay,

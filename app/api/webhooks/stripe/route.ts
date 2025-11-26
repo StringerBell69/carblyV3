@@ -35,10 +35,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log('[Stripe Webhook] Processing event:', event.type);
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         const metadata = session.metadata as { teamId?: string; organizationId?: string; reservationId?: string };
+
+        console.log('[Stripe Webhook] checkout.session.completed - Session ID:', session.id);
+        console.log('[Stripe Webhook] Metadata:', JSON.stringify(metadata));
 
         // Handle subscription payment (onboarding)
         if (metadata?.teamId && session.subscription) {
@@ -55,18 +60,25 @@ export async function POST(req: NextRequest) {
 
         // Handle reservation payment
         if (metadata?.reservationId) {
-          await db
+          console.log('[Stripe Webhook] Processing reservation payment for:', metadata.reservationId);
+
+          const updateResult = await db
             .update(reservations)
             .set({
               status: 'paid',
               stripePaymentIntentId: session.payment_intent as string,
             })
-            .where(eq(reservations.id, metadata.reservationId));
+            .where(eq(reservations.id, metadata.reservationId))
+            .returning();
+
+          console.log('[Stripe Webhook] Reservation update result:', updateResult);
 
           // Create payment record
           const reservation = await db.query.reservations.findFirst({
             where: eq(reservations.id, metadata.reservationId),
           });
+
+          console.log('[Stripe Webhook] Reservation after update - status:', reservation?.status);
 
           if (reservation) {
             await db.insert(payments).values({
