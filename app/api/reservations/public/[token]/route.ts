@@ -27,6 +27,13 @@ export async function GET(
       );
     }
 
+    console.log('[GET /api/reservations/public/[token]] Reservation status:', {
+      id: reservation.id,
+      status: reservation.status,
+      stripePaymentIntentId: reservation.stripePaymentIntentId,
+      token,
+    });
+
     return NextResponse.json({ reservation });
   } catch (error) {
     console.error('[GET /api/reservations/public/[token]]', error);

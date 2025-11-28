@@ -9,9 +9,9 @@
   --color-primary-dark: oklch(30% 0.2 277.366);
 
   /* Accent Color - Warm Amber Contrast */
-  --color-accent: oklch(72% 0.18 55);
-  --color-accent-foreground: oklch(20% 0.05 55);
-  --color-accent-muted: oklch(85% 0.1 55);
+  --color-accent: oklch(70% 0.18 277.366);
+  --color-accent-foreground: oklch(20% 0.05 277.366);
+  --color-accent-muted: oklch(85% 0.1 277.366);
 
   /* Background - Atmospheric Gradient Base */
   --color-background: oklch(98% 0.005 277);
@@ -75,8 +75,8 @@
   --color-muted: oklch(30% 0.04 277);
   --color-muted-foreground: oklch(70% 0.05 277);
 
-  --color-accent: oklch(75% 0.16 55);
-  --color-accent-foreground: oklch(15% 0.05 55);
+  --color-accent: oklch(70% 0.18 277.366);
+  --color-accent-foreground: oklch(20% 0.02 277.366);
 
   --color-border: oklch(32% 0.04 277);
   --color-input: oklch(32% 0.04 277);

@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 import {
   Building2,
   Users,
-  DollarSign,
+  Euro,
   TrendingUp,
   Car,
   Calendar,
@@ -124,7 +124,7 @@ export default async function AdminDashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenus Totaux</CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-              <DollarSign className="h-5 w-5 text-emerald-600" />
+              <Euro className="h-5 w-5 text-emerald-600" />
             </div>
           </CardHeader>
           <CardContent>

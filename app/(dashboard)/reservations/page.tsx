@@ -29,7 +29,7 @@ import {
   XCircle,
   User,
   Car,
-  DollarSign,
+  Euro,
   CalendarDays,
 } from 'lucide-react';
 
@@ -96,14 +96,7 @@ export default async function ReservationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5" />
-              Toutes les réservations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+       
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -128,7 +121,7 @@ export default async function ReservationsPage() {
                     </TableHead>
                     <TableHead>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
+                        <Euro className="h-4 w-4" />
                         Montant
                       </div>
                     </TableHead>
@@ -160,7 +153,7 @@ export default async function ReservationsPage() {
                             <User className="h-4 w-4" />
                           </div>
                           <div>
-                            {reservation.customer.firstName} {reservation.customer.lastName}
+                            {reservation.customer?.firstName} {reservation.customer?.lastName}
                           </div>
                         </div>
                       </TableCell>
@@ -221,8 +214,7 @@ export default async function ReservationsPage() {
                 </TableBody>
               </Table>
             </div>
-          </CardContent>
-        </Card>
+          
       )}
     </div>
   );

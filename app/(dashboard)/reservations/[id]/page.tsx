@@ -11,7 +11,7 @@ import {
   Calendar,
   User,
   Car,
-  DollarSign,
+  Euro,
   Phone,
   Mail,
   Shield,
@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { PaymentLinkCard } from './components/payment-link-card';
 import { ContractSection } from './components/contract-section';
+import { BalancePaymentCard } from './components/balance-payment-card';
+import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 
 const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, icon: any }> = {
   draft: { variant: 'secondary', label: 'Brouillon', icon: FileText },
@@ -55,19 +57,46 @@ export default async function ReservationDetailPage({
 
   const StatusIcon = statusConfig[reservation.status].icon;
 
+  // Calculate balance payment details
+  const totalAmount = parseFloat(reservation.totalAmount);
+  const depositAmount = reservation.depositAmount ? parseFloat(reservation.depositAmount) : 0;
+  const balanceBeforeFees = totalAmount - depositAmount;
+  const teamPlan = (reservation.team?.plan || 'free') as PlanType;
+  const balanceFees = calculatePlatformFees(balanceBeforeFees, teamPlan);
+
+  // Check payment statuses
+  const depositPayment = reservation.payments?.find(
+    (p) => (p.type === 'deposit' || p.type === 'total') && p.status === 'succeeded'
+  );
+  const balancePayment = reservation.payments?.find(
+    (p) => p.type === 'balance' && p.status === 'succeeded'
+  );
+  const hasDeposit = !!reservation.depositAmount && depositAmount > 0;
+  const depositPaid = !!depositPayment;
+  const balanceAlreadyPaid = !!balancePayment;
+  const shouldShowBalanceCard = hasDeposit && (depositPaid || balanceAlreadyPaid);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <Link href="/reservations" className="text-primary hover:underline mb-4 inline-flex items-center gap-2">
+        <Link
+          href="/reservations"
+          className="text-primary hover:underline mb-4 inline-flex items-center gap-2"
+        >
           <ArrowLeft className="h-4 w-4" />
           Retour aux réservations
         </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Détails de la réservation</h1>
-            <p className="text-gray-600 mt-1">Réservation #{reservation.id.slice(0, 8)}</p>
+            <p className="text-gray-600 mt-1">
+              Réservation #{reservation.id.slice(0, 8)}
+            </p>
           </div>
-          <Badge variant={statusConfig[reservation.status].variant} className="text-base px-4 py-2">
+          <Badge
+            variant={statusConfig[reservation.status].variant}
+            className="text-base px-4 py-2"
+          >
             <StatusIcon className="mr-2 h-4 w-4" />
             {statusConfig[reservation.status].label}
           </Badge>
@@ -106,7 +135,9 @@ export default async function ReservationDetailPage({
                   <p className="text-2xl font-bold">
                     {reservation.vehicle.brand} {reservation.vehicle.model}
                   </p>
-                  <p className="text-muted-foreground">{reservation.vehicle.plate}</p>
+                  <p className="text-muted-foreground">
+                    {reservation.vehicle.plate}
+                  </p>
                 </div>
                 {reservation.vehicle.year && (
                   <div>
@@ -116,9 +147,12 @@ export default async function ReservationDetailPage({
                 )}
                 <Separator />
                 <div>
-                  <p className="text-sm text-muted-foreground">Tarif journalier</p>
+                  <p className="text-sm text-muted-foreground">
+                    Tarif journalier
+                  </p>
                   <p className="text-xl font-semibold text-primary">
-                    {formatCurrency(parseFloat(reservation.vehicle.dailyRate))}/jour
+                    {formatCurrency(parseFloat(reservation.vehicle.dailyRate))}
+                    /jour
                   </p>
                 </div>
               </CardContent>
@@ -136,7 +170,8 @@ export default async function ReservationDetailPage({
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-xl font-semibold">
-                    {reservation.customer.firstName} {reservation.customer.lastName}
+                    {reservation.customer?.firstName}{" "}
+                    {reservation.customer?.lastName}
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -144,20 +179,26 @@ export default async function ReservationDetailPage({
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{reservation.customer.email}</p>
+                      <p className="font-medium">
+                        {reservation.customer?.email}
+                      </p>
                     </div>
                   </div>
-                  {reservation.customer.phone && (
+                  {reservation.customer?.phone && (
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Téléphone</p>
-                        <p className="font-medium">{reservation.customer.phone}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Téléphone
+                        </p>
+                        <p className="font-medium">
+                          {reservation.customer?.phone}
+                        </p>
                       </div>
                     </div>
                   )}
                 </div>
-                {reservation.customer.identityVerified && (
+                {reservation.customer?.identityVerified && (
                   <>
                     <Separator />
                     <div className="flex items-center gap-2 text-green-600">
@@ -186,8 +227,12 @@ export default async function ReservationDetailPage({
                     <Calendar className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Date de début</p>
-                    <p className="font-semibold text-lg">{formatDate(reservation.startDate)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Date de début
+                    </p>
+                    <p className="font-semibold text-lg">
+                      {formatDate(reservation.startDate)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -196,7 +241,9 @@ export default async function ReservationDetailPage({
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Date de fin</p>
-                    <p className="font-semibold text-lg">{formatDate(reservation.endDate)}</p>
+                    <p className="font-semibold text-lg">
+                      {formatDate(reservation.endDate)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -212,17 +259,20 @@ export default async function ReservationDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{reservation.internalNotes}</p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {reservation.internalNotes}
+                </p>
               </CardContent>
             </Card>
           )}
 
-          {magicLink && reservation.status === 'pending_payment' && (
+          {magicLink && reservation.status === "pending_payment" && (
             <PaymentLinkCard
               magicLink={magicLink}
               reservationId={reservation.id}
-              customerEmail={reservation.customer.email}
-              customerName={`${reservation.customer.firstName} ${reservation.customer.lastName}`}
+              customerEmail={reservation.customer?.email}
+              customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
+              hasCustomer={!!reservation.customer}
             />
           )}
 
@@ -231,6 +281,19 @@ export default async function ReservationDetailPage({
             contract={reservation.contracts?.[0]}
             status={reservation.status}
           />
+
+          {shouldShowBalanceCard && (
+            <BalancePaymentCard
+              reservationId={reservation.id}
+              totalAmount={totalAmount}
+              depositAmount={depositAmount}
+              platformFees={balanceFees.totalFee}
+              customerEmail={reservation.customer?.email}
+              customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
+              balanceAlreadyPaid={balanceAlreadyPaid}
+              depositPaid={depositPaid}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
@@ -258,7 +321,7 @@ export default async function ReservationDetailPage({
                   </div>
                 </div>
 
-                {reservation.status === 'pending_payment' && (
+                {reservation.status === "pending_payment" && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-yellow-100 p-2">
@@ -275,7 +338,10 @@ export default async function ReservationDetailPage({
                   </div>
                 )}
 
-                {(reservation.status === 'paid' || reservation.status === 'confirmed' || reservation.status === 'in_progress' || reservation.status === 'completed') && (
+                {(reservation.status === "paid" ||
+                  reservation.status === "confirmed" ||
+                  reservation.status === "in_progress" ||
+                  reservation.status === "completed") && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-green-100 p-2">
@@ -286,13 +352,44 @@ export default async function ReservationDetailPage({
                     <div className="flex-1 pb-4">
                       <p className="font-semibold">Paiement confirmé</p>
                       <p className="text-sm text-muted-foreground">
-                        Le paiement a été reçu
+                        Le paiement de l'acompte a été reçu
                       </p>
                     </div>
                   </div>
                 )}
 
-                {(reservation.status === 'in_progress' || reservation.status === 'completed') && (
+                {reservation.contracts?.[0]?.signedAt && (
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="rounded-full bg-blue-100 p-2">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="w-px h-full bg-border mt-2"></div>
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <p className="font-semibold">
+                        Contrat signé électroniquement
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(reservation.contracts[0].signedAt)} -
+                        Signature via Yousign
+                      </p>
+                      {reservation.contracts[0].signedPdfUrl && (
+                        <a
+                          href={reservation.contracts[0].signedPdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline mt-1 inline-block"
+                        >
+                          Télécharger le contrat signé →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(reservation.status === "in_progress" ||
+                  reservation.status === "completed") && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-blue-100 p-2">
@@ -309,7 +406,7 @@ export default async function ReservationDetailPage({
                   </div>
                 )}
 
-                {reservation.status === 'completed' && (
+                {reservation.status === "completed" && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-green-100 p-2">
@@ -325,7 +422,7 @@ export default async function ReservationDetailPage({
                   </div>
                 )}
 
-                {reservation.status === 'cancelled' && (
+                {reservation.status === "cancelled" && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-red-100 p-2">
@@ -350,7 +447,7 @@ export default async function ReservationDetailPage({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="rounded-md bg-primary/10 p-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
+                  <Euro className="h-5 w-5 text-primary" />
                 </div>
                 Informations de paiement
               </CardTitle>
@@ -367,7 +464,7 @@ export default async function ReservationDetailPage({
                 {reservation.depositAmount && (
                   <div className="flex justify-between items-center p-3 border rounded-lg">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <Euro className="h-4 w-4 text-muted-foreground" />
                       <span>Acompte</span>
                     </div>
                     <span className="font-semibold">
@@ -376,17 +473,20 @@ export default async function ReservationDetailPage({
                   </div>
                 )}
 
-                {reservation.includeInsurance && reservation.insuranceAmount && (
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span>Assurance</span>
+                {reservation.includeInsurance &&
+                  reservation.insuranceAmount && (
+                    <div className="flex justify-between items-center p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        <span>Assurance</span>
+                      </div>
+                      <span className="font-semibold">
+                        {formatCurrency(
+                          parseFloat(reservation.insuranceAmount)
+                        )}
+                      </span>
                     </div>
-                    <span className="font-semibold">
-                      {formatCurrency(parseFloat(reservation.insuranceAmount))}
-                    </span>
-                  </div>
-                )}
+                  )}
 
                 {reservation.cautionAmount && (
                   <div className="flex justify-between items-center p-3 border rounded-lg">
@@ -411,12 +511,19 @@ export default async function ReservationDetailPage({
                     </h4>
                     <div className="space-y-2">
                       {reservation.payments.map((payment: any) => (
-                        <div key={payment.id} className="flex justify-between items-center p-3 border rounded-lg">
+                        <div
+                          key={payment.id}
+                          className="flex justify-between items-center p-3 border rounded-lg"
+                        >
                           <div>
                             <p className="font-medium">{payment.type}</p>
-                            <p className="text-sm text-muted-foreground">{payment.status}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {payment.status}
+                            </p>
                           </div>
-                          <span className="font-semibold">{formatCurrency(parseFloat(payment.amount))}</span>
+                          <span className="font-semibold">
+                            {formatCurrency(parseFloat(payment.amount))}
+                          </span>
                         </div>
                       ))}
                     </div>

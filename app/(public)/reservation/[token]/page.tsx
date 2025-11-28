@@ -46,6 +46,12 @@ export default function PublicReservationPage() {
         throw new Error(data.error || 'Réservation non trouvée');
       }
 
+      // If reservation has no customer (self-fill mode), redirect to customer info page
+      if (!data.reservation.customerId && data.reservation.status === 'pending_payment') {
+        window.location.href = `/reservation/${token}/customer-info`;
+        return;
+      }
+
       setReservation(data.reservation);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -295,9 +301,9 @@ export default function PublicReservationPage() {
                 <span className="font-bold">{formatCurrency(parseFloat(reservation.totalAmount))}</span>
               </div>
               {reservation.depositAmount && (
-                <div className="flex justify-between items-center text-xs text-gray-600">
-                  <span>Acompte payé</span>
-                  <span>{formatCurrency(parseFloat(reservation.depositAmount))}</span>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Reste à payer</span>
+                  <span>{formatCurrency(parseFloat(reservation.totalAmount) - parseFloat(reservation.depositAmount))}</span>
                 </div>
               )}
             </CardContent>
@@ -412,7 +418,7 @@ export default function PublicReservationPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 italic">
-                      Le solde sera à régler lors de la prise en charge du véhicule
+                      Le solde de {formatCurrency(parseFloat(reservation.totalAmount) - parseFloat(reservation.depositAmount))} sera à régler lors de la prise en charge du véhicule
                     </p>
                   </>
                 )}

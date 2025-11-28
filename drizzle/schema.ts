@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm';
 export const planEnum = pgEnum('plan', ['free', 'starter', 'pro', 'business']);
 export const vehicleStatusEnum = pgEnum('vehicle_status', ['available', 'rented', 'maintenance', 'out_of_service']);
 export const reservationStatusEnum = pgEnum('reservation_status', ['draft', 'pending_payment', 'paid', 'confirmed', 'in_progress', 'completed', 'cancelled']);
-export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'total', 'caution', 'insurance']);
+export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'total', 'caution', 'insurance', 'balance']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'succeeded', 'failed', 'refunded']);
 export const messageTypeEnum = pgEnum('message_type', ['email', 'sms']);
 export const communicationStatusEnum = pgEnum('communication_status', ['pending', 'sent', 'delivered', 'failed']);
@@ -203,7 +203,7 @@ export const reservations = pgTable('reservations', {
   id: uuid('id').primaryKey().defaultRandom(),
   teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
   vehicleId: uuid('vehicle_id').references(() => vehicles.id, { onDelete: 'restrict' }).notNull(),
-  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'restrict' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'restrict' }),
   startDate: timestamp('start_date').notNull(),
   endDate: timestamp('end_date').notNull(),
   status: reservationStatusEnum('status').default('draft').notNull(),
@@ -214,8 +214,10 @@ export const reservations = pgTable('reservations', {
   insuranceAmount: decimal('insurance_amount', { precision: 10, scale: 2 }),
   includeInsurance: boolean('include_insurance').default(false).notNull(),
   magicLinkToken: text('magic_link_token').unique(),
+  balancePaymentToken: text('balance_payment_token').unique(),
   stripePaymentIntentId: text('stripe_payment_intent_id'),
   stripeCautionIntentId: text('stripe_caution_intent_id'),
+  stripeBalanceIntentId: text('stripe_balance_intent_id'),
   checkinAt: timestamp('checkin_at'),
   checkinPhotos: jsonb('checkin_photos').$type<string[]>(),
   checkinNotes: text('checkin_notes'),

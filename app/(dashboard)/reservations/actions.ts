@@ -1,9 +1,9 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { reservations, vehicles, customers } from '@/drizzle/schema';
+import { reservations, vehicles, customers, payments } from '@/drizzle/schema';
 import { getCurrentTeamId } from '@/lib/session';
-import { eq, and, or, lte, gte } from 'drizzle-orm';
+import { eq, and, or, lte, gte, ilike, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { generateRandomToken, calculateRentalPrice } from '@/lib/utils';
 import { sendReservationPaymentLink } from '@/lib/resend';
@@ -62,6 +62,7 @@ export async function getReservation(id: string) {
         customer: true,
         payments: true,
         contracts: true,
+        team: true,
       },
     });
 
@@ -121,9 +122,41 @@ export async function checkVehicleAvailability(data: {
   }
 }
 
+export async function getVehicleBookedDates(vehicleId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get all confirmed/paid/in-progress reservations for this vehicle
+    const bookedReservations = await db.query.reservations.findMany({
+      where: and(
+        eq(reservations.vehicleId, vehicleId),
+        eq(reservations.teamId, teamId),
+        or(
+          eq(reservations.status, 'paid'),
+          eq(reservations.status, 'confirmed'),
+          eq(reservations.status, 'in_progress')
+        )
+      ),
+      columns: {
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    return { bookedReservations };
+  } catch (error) {
+    console.error('[getVehicleBookedDates]', error);
+    return { error: 'Failed to fetch booked dates' };
+  }
+}
+
 export async function createReservation(data: {
   vehicleId: string;
-  customerId: string;
+  customerId?: string; // Optional for self-fill mode
   startDate: Date;
   endDate: Date;
   depositAmount?: string;
@@ -194,7 +227,7 @@ export async function createReservation(data: {
       .values({
         teamId,
         vehicleId: data.vehicleId,
-        customerId: data.customerId,
+        customerId: data.customerId || undefined,
         startDate: data.startDate,
         endDate: data.endDate,
         status: 'pending_payment',
@@ -209,30 +242,33 @@ export async function createReservation(data: {
       })
       .returning();
 
-    // Get customer for email
-    const customer = await db.query.customers.findFirst({
-      where: eq(customers.id, data.customerId),
-    });
+    // If customer exists, send email with payment link
+    if (data.customerId) {
+      const customer = await db.query.customers.findFirst({
+        where: eq(customers.id, data.customerId),
+      });
 
-    if (!customer) {
-      return { error: 'Customer not found' };
+      if (!customer) {
+        return { error: 'Customer not found' };
+      }
+
+      // Send email with magic link
+      const magicLink = `${process.env.NEXT_PUBLIC_URL}/reservation/${magicLinkToken}`;
+      await sendReservationPaymentLink({
+        to: customer.email,
+        customerName: `${customer.firstName} ${customer.lastName}`,
+        vehicleName: `${vehicle.brand} ${vehicle.model}`,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        amount: totalAmount,
+        magicLink,
+      });
     }
-
-    // Send email with magic link
-    const magicLink = `${process.env.NEXT_PUBLIC_URL}/reservation/${magicLinkToken}`;
-    await sendReservationPaymentLink({
-      to: customer.email,
-      customerName: `${customer.firstName} ${customer.lastName}`,
-      vehicleName: `${vehicle.brand} ${vehicle.model}`,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      amount: totalAmount,
-      magicLink,
-    });
+    // If no customer (self-fill mode), the agency will send the link manually
 
     revalidatePath('/reservations');
 
-    return { reservation };
+    return { reservation, magicLinkToken };
   } catch (error) {
     console.error('[createReservation]', error);
     return { error: 'Failed to create reservation' };
@@ -299,13 +335,28 @@ export async function searchCustomers(query: string) {
       return { error: 'Unauthorized' };
     }
 
-    const customersList = await db.query.customers.findMany({
-      where: or(
-        eq(customers.email, query.toLowerCase()),
-        eq(customers.phone, query)
-      ),
-      limit: 10,
-    });
+    if (!query || query.trim().length < 3) {
+      return { customers: [] };
+    }
+
+    const searchTerm = query.trim();
+    const searchPattern = `%${searchTerm}%`;
+
+    // Search by email, phone, first name, or last name using ILIKE (case-insensitive LIKE)
+    const customersList = await db
+      .select()
+      .from(customers)
+      .where(
+        or(
+          ilike(customers.email, searchPattern),
+          ilike(customers.phone, searchPattern),
+          ilike(customers.firstName, searchPattern),
+          ilike(customers.lastName, searchPattern),
+          // Also search full name
+          sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}) ILIKE ${searchPattern}`
+        )
+      )
+      .limit(10);
 
     return { customers: customersList };
   } catch (error) {
@@ -335,7 +386,7 @@ export async function createCustomer(data: {
     });
 
     if (existingCustomer) {
-      return { error: 'Customer already exists' };
+      return { error: 'L\'email est déjà utilisé par : ' + existingCustomer.firstName + ' ' + existingCustomer.lastName };
     }
 
     // Create customer
@@ -390,6 +441,9 @@ export async function resendPaymentLink(reservationId: string) {
 
     // Send email with magic link
     const magicLink = `${process.env.NEXT_PUBLIC_URL}/reservation/${reservation.magicLinkToken}`;
+    if (!reservation.customer) {
+      return { error: 'No customer associated with this reservation' };
+    }
     await sendReservationPaymentLink({
       to: reservation.customer.email,
       customerName: `${reservation.customer.firstName} ${reservation.customer.lastName}`,
@@ -440,23 +494,59 @@ export async function generateReservationContract(reservationId: string) {
       return { error: contractResult.error };
     }
 
-    // Get full reservation data for Yousign
+    revalidatePath(`/reservations/${reservationId}`);
+
+    return { success: true, contractUrl: contractResult.pdfUrl };
+  } catch (error) {
+    console.error('[generateReservationContract]', error);
+    return { error: 'Failed to generate contract' };
+  }
+}
+
+export async function sendContractForSignature(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get full reservation data
     const fullReservation = await db.query.reservations.findFirst({
-      where: eq(reservations.id, reservationId),
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
       with: {
         customer: true,
         vehicle: true,
+        contracts: true,
       },
     });
 
     if (!fullReservation) {
-      return { error: 'Failed to fetch reservation details' };
+      return { error: 'Reservation not found' };
+    }
+
+    if (!fullReservation.customer) {
+      return { error: 'Customer details are required to send contract' };
+    }
+
+    // Check if contract exists
+    const contract = fullReservation.contracts[0];
+    if (!contract || !contract.pdfUrl) {
+      return { error: 'Contract must be generated first' };
+    }
+
+    // Check if already sent for signature
+    if (contract.yousignSignatureRequestId) {
+      return { error: 'Contract already sent for signature' };
     }
 
     // Send to Yousign for signature
     const { createYousignSignatureRequest } = await import('@/lib/yousign');
     const yousignResult = await createYousignSignatureRequest({
-      contractPdfUrl: contractResult.pdfUrl!,
+      contractPdfUrl: contract.pdfUrl,
       customer: {
         firstName: fullReservation.customer.firstName || '',
         lastName: fullReservation.customer.lastName || '',
@@ -467,23 +557,25 @@ export async function generateReservationContract(reservationId: string) {
     });
 
     if (yousignResult.error) {
-      console.error('[generateReservationContract] Yousign error:', yousignResult.error);
-      // Continue even if Yousign fails - send email with PDF link
-    } else if (yousignResult.signatureRequestId) {
-      // Update contract with Yousign signature request ID
-      const { contracts } = await import('@/drizzle/schema');
-      await db
-        .update(contracts)
-        .set({
-          yousignSignatureRequestId: yousignResult.signatureRequestId,
-          updatedAt: new Date(),
-        })
-        .where(eq(contracts.reservationId, reservationId));
-
-      console.log('[generateReservationContract] Yousign signature request created:', yousignResult.signatureRequestId);
+      console.error('[sendContractForSignature] Yousign error:', yousignResult.error);
+      return { error: yousignResult.error };
     }
 
-    // Send confirmation email
+    if (!yousignResult.signatureRequestId || !yousignResult.signatureLink) {
+      return { error: 'Failed to create signature request' };
+    }
+
+    // Update contract with Yousign signature request ID
+    const { contracts } = await import('@/drizzle/schema');
+    await db
+      .update(contracts)
+      .set({
+        yousignSignatureRequestId: yousignResult.signatureRequestId,
+        updatedAt: new Date(),
+      })
+      .where(eq(contracts.reservationId, reservationId));
+
+    // Send confirmation email with Yousign signature link
     const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
     await sendPaymentConfirmedEmail({
       to: fullReservation.customer.email,
@@ -492,14 +584,363 @@ export async function generateReservationContract(reservationId: string) {
         brand: fullReservation.vehicle.brand,
         model: fullReservation.vehicle.model,
       },
-      yousignLink: contractResult.pdfUrl,
+      yousignLink: yousignResult.signatureLink,
     });
 
     revalidatePath(`/reservations/${reservationId}`);
 
-    return { success: true, contractUrl: contractResult.pdfUrl };
+    return { success: true, signatureLink: yousignResult.signatureLink };
   } catch (error) {
-    console.error('[generateReservationContract]', error);
-    return { error: 'Failed to generate contract' };
+    console.error('[sendContractForSignature]', error);
+    return { error: 'Failed to send contract for signature' };
+  }
+}
+
+export async function checkContractSignatureStatus(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get full reservation data
+    const fullReservation = await db.query.reservations.findFirst({
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
+      with: {
+        customer: true,
+        vehicle: true,
+        contracts: true,
+        team: true,
+      },
+    });
+
+    if (!fullReservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    const contract = fullReservation.contracts[0];
+    if (!contract) {
+      return { error: 'No contract found' };
+    }
+
+    if (!contract.yousignSignatureRequestId) {
+      return { error: 'Contract not sent for signature yet' };
+    }
+
+    if (contract.signedAt) {
+      return {
+        status: 'signed',
+        message: 'Contract already signed',
+        signedAt: contract.signedAt,
+        signedPdfUrl: contract.signedPdfUrl,
+      };
+    }
+
+    // Check status from Yousign API
+    const { getYousignSignatureRequest, downloadYousignSignedDocument } = await import('@/lib/yousign');
+    const yousignStatus = await getYousignSignatureRequest(contract.yousignSignatureRequestId);
+
+    if (yousignStatus.error) {
+      console.error('[checkContractSignatureStatus] Yousign API error:', yousignStatus.error);
+      return { error: yousignStatus.error };
+    }
+
+    console.log('[checkContractSignatureStatus] Yousign status:', yousignStatus.status);
+
+    // If status is done but we haven't processed it yet, process it now
+    if (yousignStatus.status === 'done' && !contract.signedAt) {
+      console.log('[checkContractSignatureStatus] Processing missed signature completion');
+
+      // Get document ID from the signature request
+      // We need to fetch the full signature request to get documents
+      const signatureRequestResponse = await fetch(
+        `https://api-sandbox.yousign.app/v3/signature_requests/${contract.yousignSignatureRequestId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.YOUSIGN_API_KEY}`,
+          },
+        }
+      );
+
+      if (!signatureRequestResponse.ok) {
+        return { error: 'Failed to fetch signature request details' };
+      }
+
+      const signatureRequestData = await signatureRequestResponse.json();
+      const documentId = signatureRequestData.documents?.[0]?.id;
+
+      if (!documentId) {
+        return { error: 'No document found in signature request' };
+      }
+
+      // Download signed PDF
+      const { fileBuffer, error: downloadError } = await downloadYousignSignedDocument(
+        contract.yousignSignatureRequestId,
+        documentId
+      );
+
+      if (downloadError || !fileBuffer) {
+        console.error('[checkContractSignatureStatus] Failed to download:', downloadError);
+        return { error: downloadError || 'Failed to download signed document' };
+      }
+
+      // Upload to R2
+      const { uploadToR2 } = await import('@/lib/r2');
+      const signedPdfPath = `contracts/${fullReservation.teamId}/${reservationId}-signed.pdf`;
+      const signedPdfUrl = await uploadToR2({
+        file: fileBuffer,
+        path: signedPdfPath,
+        contentType: 'application/pdf',
+      });
+
+      // Update contract
+      const { contracts } = await import('@/drizzle/schema');
+      await db
+        .update(contracts)
+        .set({
+          signedAt: new Date(),
+          signedPdfUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(contracts.id, contract.id));
+
+      // Update reservation status to confirmed
+      await db
+        .update(reservations)
+        .set({
+          status: 'confirmed',
+          updatedAt: new Date(),
+        })
+        .where(eq(reservations.id, reservationId));
+
+      // Send confirmation email
+      if (fullReservation.customer) {
+        try {
+          const { sendContractSignedEmail } = await import('@/lib/resend');
+          await sendContractSignedEmail({
+            to: fullReservation.customer.email,
+            customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+            vehicle: {
+              brand: fullReservation.vehicle.brand,
+              model: fullReservation.vehicle.model,
+            },
+            dates: {
+              start: fullReservation.startDate.toLocaleDateString('fr-FR'),
+              end: fullReservation.endDate.toLocaleDateString('fr-FR'),
+            },
+            pickupAddress: fullReservation.team.address || fullReservation.team.name,
+            contractPdfUrl: signedPdfUrl,
+          });
+          console.log('[checkContractSignatureStatus] Confirmation email sent');
+        } catch (emailError) {
+          console.error('[checkContractSignatureStatus] Email error:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
+
+      console.log('[checkContractSignatureStatus] Contract processed successfully');
+
+      revalidatePath(`/reservations/${reservationId}`);
+
+      return {
+        status: 'signed',
+        message: 'Contract just signed - processed successfully',
+        signedAt: new Date(),
+        signedPdfUrl,
+      };
+    }
+
+    // Return current status
+    return {
+      status: yousignStatus.status,
+      message: `Contract status: ${yousignStatus.status}`,
+    };
+  } catch (error) {
+    console.error('[checkContractSignatureStatus]', error);
+    return { error: 'Failed to check signature status' };
+  }
+}
+
+export async function sendBalancePaymentLink(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get full reservation data including team and payments
+    const fullReservation = await db.query.reservations.findFirst({
+      where: and(eq(reservations.id, reservationId), eq(reservations.teamId, teamId)),
+      with: {
+        customer: true,
+        vehicle: true,
+        team: true,
+        payments: true,
+      },
+    });
+
+    if (!fullReservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    if (!fullReservation.customer) {
+      return { error: 'No customer associated with this reservation' };
+    }
+
+    // Check if deposit was paid
+    const depositPayment = fullReservation.payments.find(
+      (p) => p.type === 'deposit' && p.status === 'succeeded'
+    );
+
+    if (!depositPayment) {
+      return { error: 'Deposit must be paid before requesting balance payment' };
+    }
+
+    // Check if balance was already paid
+    const balancePayment = fullReservation.payments.find(
+      (p) => p.type === 'balance' && p.status === 'succeeded'
+    );
+
+    if (balancePayment) {
+      return { error: 'Balance has already been paid' };
+    }
+
+    // Calculate balance amount
+    const totalAmount = parseFloat(fullReservation.totalAmount);
+    const depositAmount = fullReservation.depositAmount ? parseFloat(fullReservation.depositAmount) : 0;
+    const balanceBeforeFees = totalAmount - depositAmount;
+
+    // Calculate Carbly platform fees on the balance
+    const { calculatePlatformFees } = await import('@/lib/pricing-config');
+    const fees = calculatePlatformFees(balanceBeforeFees, fullReservation.team.plan);
+
+    // Total balance = remaining amount + platform fees
+    const totalBalanceAmount = balanceBeforeFees + fees.totalFee;
+
+    // Generate unique token for balance payment
+    const { randomBytes } = await import('crypto');
+    const balanceToken = randomBytes(32).toString('hex');
+
+    // Update reservation with balance payment token
+    await db
+      .update(reservations)
+      .set({
+        balancePaymentToken: balanceToken,
+      })
+      .where(eq(reservations.id, reservationId));
+
+    // Send email to customer with payment link
+    const { sendBalancePaymentEmail } = await import('@/lib/resend');
+    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reservation/${balanceToken}/balance`;
+
+    await sendBalancePaymentEmail({
+      to: fullReservation.customer.email,
+      customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+      vehicle: {
+        brand: fullReservation.vehicle.brand,
+        model: fullReservation.vehicle.model,
+      },
+      dates: {
+        start: fullReservation.startDate.toLocaleDateString('fr-FR'),
+        end: fullReservation.endDate.toLocaleDateString('fr-FR'),
+      },
+      amounts: {
+        totalReservation: totalAmount,
+        depositPaid: depositAmount,
+        balance: balanceBeforeFees,
+        platformFees: fees.totalFee,
+        totalToPay: totalBalanceAmount,
+      },
+      paymentUrl,
+    });
+
+    console.log('[sendBalancePaymentLink] Balance payment link sent to:', fullReservation.customer.email);
+
+    revalidatePath(`/reservations/${reservationId}`);
+
+    return {
+      success: true,
+      balanceAmount: totalBalanceAmount,
+      paymentUrl,
+    };
+  } catch (error) {
+    console.error('[sendBalancePaymentLink]', error);
+    return { error: 'Failed to send balance payment link' };
+  }
+}
+
+export async function markBalanceAsPaidCash(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get full reservation data including team and payments
+    const fullReservation = await db.query.reservations.findFirst({
+      where: and(eq(reservations.id, reservationId), eq(reservations.teamId, teamId)),
+      with: {
+        customer: true,
+        vehicle: true,
+        team: true,
+        payments: true,
+      },
+    });
+
+    if (!fullReservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    // Check if deposit was paid
+    const depositPayment = fullReservation.payments.find(
+      (p) => (p.type === 'deposit' || p.type === 'total') && p.status === 'succeeded'
+    );
+
+    if (!depositPayment) {
+      return { error: 'Deposit must be paid before marking balance as paid' };
+    }
+
+    // Check if balance was already paid
+    const balancePayment = fullReservation.payments.find(
+      (p) => p.type === 'balance' && p.status === 'succeeded'
+    );
+
+    if (balancePayment) {
+      return { error: 'Balance has already been paid' };
+    }
+
+    // Calculate balance amount
+    const totalAmount = parseFloat(fullReservation.totalAmount);
+    const depositAmount = fullReservation.depositAmount ? parseFloat(fullReservation.depositAmount) : 0;
+    const balanceAmount = totalAmount - depositAmount;
+
+    // For cash payments, no platform fees are charged to the customer
+    // The agency receives the full balance amount
+    // Create payment record for cash payment (no fees for cash)
+    await db.insert(payments).values({
+      reservationId: reservationId,
+      amount: balanceAmount.toString(),
+      fee: '0',  // No fees for cash payments
+      type: 'balance',
+      status: 'succeeded',
+      paidAt: new Date(),
+      // No stripePaymentIntentId for cash payments
+    });
+
+    console.log('[markBalanceAsPaidCash] Balance marked as paid in cash for reservation:', reservationId);
+
+    revalidatePath(`/reservations/${reservationId}`);
+
+    return {
+      success: true,
+      message: 'Balance marked as paid in cash',
+    };
+  } catch (error) {
+    console.error('[markBalanceAsPaidCash]', error);
+    return { error: 'Failed to mark balance as paid' };
   }
 }

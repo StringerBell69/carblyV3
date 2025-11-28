@@ -36,7 +36,7 @@ export async function createTeam(data: {
   organizationId: string;
   name: string;
   address?: string;
-  plan: 'starter' | 'pro' | 'business';
+  plan: 'free' |'starter' | 'pro' | 'business';
 }) {
   try {
     const session = await auth.api.getSession({

@@ -18,16 +18,24 @@ import {
   User,
   CheckCircle,
   CircleDot,
-  DollarSign,
+  Euro,
   Shield,
   Mail,
   Phone,
   FileText,
   Clock,
 } from 'lucide-react';
-import { createReservation, createCustomer, checkVehicleAvailability } from '../actions';
+import { createReservation, createCustomer, checkVehicleAvailability, searchCustomers, getVehicleBookedDates } from '../actions';
 import { getVehicles } from '../../vehicles/actions';
-import { formatCurrency, calculateRentalPrice, calculateDays } from '@/lib/utils';
+import { formatCurrency, calculateRentalPrice, calculateDays, formatDate } from '@/lib/utils';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import type { DateRange } from 'react-day-picker';
+import PhoneInput from "react-phone-input-2";
 
 export default function NewReservationPage() {
   const router = useRouter();
@@ -40,7 +48,15 @@ export default function NewReservationPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [bookedDates, setBookedDates] = useState<Date[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [dateRangeWarning, setDateRangeWarning] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const [customerMode, setCustomerMode] = useState<'new' | 'existing' | 'self-fill'>('new');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [customerData, setCustomerData] = useState({
     email: '',
@@ -54,15 +70,115 @@ export default function NewReservationPage() {
   const [depositPercent, setDepositPercent] = useState('30');
   const [internalNotes, setInternalNotes] = useState('');
 
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   useEffect(() => {
     loadVehicles();
   }, []);
+
+  useEffect(() => {
+    if (customerMode === 'existing' && debouncedSearchQuery.length >= 3) {
+      handleSearchCustomers();
+    } else {
+      setSearchResults([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchQuery, customerMode]);
 
   const loadVehicles = async () => {
     const result = await getVehicles({ status: 'available' });
     if (!result.error && result.vehicles) {
       setVehicles(result.vehicles);
     }
+  };
+
+  const handleSearchCustomers = async () => {
+    setSearchLoading(true);
+    try {
+      const result = await searchCustomers(debouncedSearchQuery);
+      if (!result.error && result.customers) {
+        setSearchResults(result.customers);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const selectExistingCustomer = (customer: any) => {
+    setCustomerId(customer.id);
+    setCustomerData({
+      email: customer.email,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phone: customer.phone || '',
+    });
+    setSearchQuery('');
+    setSearchResults([]);
+    setStep(4);
+  };
+
+  const loadBookedDates = async (vehicleId: string) => {
+    const result = await getVehicleBookedDates(vehicleId);
+    if (!result.error && result.bookedReservations) {
+      // Generate all dates between start and end for each reservation
+      const allBookedDates: Date[] = [];
+      result.bookedReservations.forEach((reservation) => {
+        const start = new Date(reservation.startDate);
+        const end = new Date(reservation.endDate);
+
+        // Set to midnight to avoid timezone issues
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        const currentDate = new Date(start);
+
+        while (currentDate <= end) {
+          allBookedDates.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+          currentDate.setHours(0, 0, 0, 0);
+        }
+      });
+      setBookedDates(allBookedDates);
+    }
+  };
+
+  const checkBookedDatesInRange = (from: Date, to: Date): boolean => {
+    if (!from || !to) return false;
+
+    const start = new Date(from);
+    const end = new Date(to);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    const currentDate = new Date(start);
+    const bookedInRange: Date[] = [];
+
+    while (currentDate <= end) {
+      const isBooked = bookedDates.some(
+        (bookedDate) =>
+          bookedDate.getFullYear() === currentDate.getFullYear() &&
+          bookedDate.getMonth() === currentDate.getMonth() &&
+          bookedDate.getDate() === currentDate.getDate()
+      );
+
+      if (isBooked) {
+        bookedInRange.push(new Date(currentDate));
+      }
+
+      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setHours(0, 0, 0, 0);
+    }
+
+    if (bookedInRange.length > 0) {
+      const dates = bookedInRange.map(d => format(d, 'd MMM', { locale: fr })).join(', ');
+      setDateRangeWarning(`Attention : Les dates suivantes sont déjà réservées : ${dates}`);
+      return true;
+    }
+
+    setDateRangeWarning('');
+    return false;
   };
 
   const handleStep1 = async (e: React.FormEvent) => {
@@ -76,6 +192,8 @@ export default function NewReservationPage() {
     }
 
     setSelectedVehicle(vehicle);
+    // Load booked dates for this vehicle
+    await loadBookedDates(vehicle.id);
     setStep(2);
   };
 
@@ -116,14 +234,27 @@ export default function NewReservationPage() {
     setError('');
 
     try {
-      const result = await createCustomer(customerData);
+      if (customerMode === 'self-fill') {
+        // Skip customer creation, will be done by customer before payment
+        setCustomerId(''); // Will be filled later
+        setStep(4);
+      } else if (customerMode === 'existing') {
+        // Customer already selected
+        if (!customerId) {
+          throw new Error('Veuillez sélectionner un client');
+        }
+        setStep(4);
+      } else {
+        // Create new customer
+        const result = await createCustomer(customerData);
 
-      if (result.error) {
-        throw new Error(result.error);
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        setCustomerId(result.customer!.id);
+        setStep(4);
       }
-
-      setCustomerId(result.customer!.id);
-      setStep(4);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur création client');
     } finally {
@@ -202,7 +333,10 @@ export default function NewReservationPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <Link href="/reservations" className="text-primary hover:underline mb-4 inline-flex items-center gap-2">
+        <Link
+          href="/reservations"
+          className="text-primary hover:underline mb-4 inline-flex items-center gap-2"
+        >
           <ArrowLeft className="h-4 w-4" />
           Retour aux réservations
         </Link>
@@ -223,17 +357,19 @@ export default function NewReservationPage() {
                   <div
                     className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
                       isActive
-                        ? 'border-primary bg-primary text-white'
+                        ? "border-primary bg-primary text-white"
                         : isCompleted
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-muted bg-background text-muted-foreground'
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-muted bg-background text-muted-foreground"
                     }`}
                   >
                     <StepIcon className="h-5 w-5" />
                   </div>
                   <span
                     className={`text-xs mt-2 font-medium ${
-                      isActive || isCompleted ? 'text-primary' : 'text-muted-foreground'
+                      isActive || isCompleted
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {s.label}
@@ -242,7 +378,7 @@ export default function NewReservationPage() {
                 {index < steps.length - 1 && (
                   <Separator
                     className={`flex-1 mx-2 ${
-                      isCompleted ? 'bg-primary' : 'bg-muted'
+                      isCompleted ? "bg-primary" : "bg-muted"
                     }`}
                   />
                 )}
@@ -296,27 +432,38 @@ export default function NewReservationPage() {
                       onClick={() => setSelectedVehicleId(vehicle.id)}
                       className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
                         selectedVehicleId === vehicle.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`rounded-md p-2 ${
-                          selectedVehicleId === vehicle.id ? 'bg-primary/10' : 'bg-muted'
-                        }`}>
-                          <Car className={`h-5 w-5 ${
-                            selectedVehicleId === vehicle.id ? 'text-primary' : 'text-muted-foreground'
-                          }`} />
+                        <div
+                          className={`rounded-md p-2 ${
+                            selectedVehicleId === vehicle.id
+                              ? "bg-primary/10"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <Car
+                            className={`h-5 w-5 ${
+                              selectedVehicleId === vehicle.id
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          />
                         </div>
                         <div className="flex-1">
                           <h4 className="font-semibold">
                             {vehicle.brand} {vehicle.model}
                           </h4>
-                          <p className="text-sm text-muted-foreground">{vehicle.plate}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {vehicle.plate}
+                          </p>
                           <div className="flex items-center gap-1 mt-2">
-                            <DollarSign className="h-4 w-4 text-primary" />
+                            <Euro className="h-4 w-4 text-primary" />
                             <p className="text-lg font-bold text-primary">
-                              {formatCurrency(parseFloat(vehicle.dailyRate))}/jour
+                              {formatCurrency(parseFloat(vehicle.dailyRate))}
+                              /jour
                             </p>
                           </div>
                         </div>
@@ -326,7 +473,11 @@ export default function NewReservationPage() {
                 </div>
               )}
 
-              <Button type="submit" disabled={!selectedVehicleId} className="w-full">
+              <Button
+                type="submit"
+                disabled={!selectedVehicleId}
+                className="w-full"
+              >
                 Continuer
               </Button>
             </form>
@@ -348,39 +499,129 @@ export default function NewReservationPage() {
             <CardContent>
               <form onSubmit={handleStep2} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startDate" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-green-600" />
-                    Date de début *
+                  <Label className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    Sélectionnez la période de location *
                   </Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate" className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-red-600" />
-                    Date de fin *
-                  </Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={startDate || new Date().toISOString().split('T')[0]}
-                    required
-                  />
+                  <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dateRange?.from && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "d MMMM yyyy", {
+                                locale: fr,
+                              })}{" "}
+                              -{" "}
+                              {format(dateRange.to, "d MMMM yyyy", {
+                                locale: fr,
+                              })}
+                            </>
+                          ) : (
+                            format(dateRange.from, "d MMMM yyyy", {
+                              locale: fr,
+                            })
+                          )
+                        ) : (
+                          <span>Choisir une période</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="range"
+                        defaultMonth={dateRange?.from || new Date()}
+                        selected={dateRange}
+                        onSelect={(range) => {
+                          if (!range) return;
+
+                          setDateRange(range);
+                          setDateRangeWarning("");
+
+                          if (range.from) {
+                            const fromDate = new Date(range.from);
+                            fromDate.setHours(12, 0, 0, 0);
+                            setStartDate(fromDate.toISOString().split("T")[0]);
+
+                            // Reset endDate if selecting new start date
+                            if (!range.to) {
+                              setEndDate("");
+                            }
+                          }
+
+                          // Only close when BOTH dates are selected AND they are different
+                          if (
+                            range.from &&
+                            range.to &&
+                            range.from.getTime() !== range.to.getTime()
+                          ) {
+                            const toDate = new Date(range.to);
+                            toDate.setHours(12, 0, 0, 0);
+                            setEndDate(toDate.toISOString().split("T")[0]);
+
+                            // Check if there are booked dates in the selected range
+                            checkBookedDatesInRange(range.from, range.to);
+
+                            // Auto-close when both dates are selected
+                            setTimeout(() => setCalendarOpen(false), 100);
+                          }
+                        }}
+                        numberOfMonths={1}
+                        disabled={(date) => {
+                          // Disable past dates
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const checkDate = new Date(date);
+                          checkDate.setHours(0, 0, 0, 0);
+
+                          if (checkDate < today) return true;
+
+                          // Disable booked dates
+                          return bookedDates.some((bookedDate) => {
+                            const bd = new Date(bookedDate);
+                            bd.setHours(0, 0, 0, 0);
+                            return bd.getTime() === checkDate.getTime();
+                          });
+                        }}
+                        modifiers={{
+                          booked: bookedDates,
+                        }}
+                        modifiersClassNames={{
+                          booked: "line-through opacity-50",
+                        }}
+                        className="rounded-lg border shadow-sm"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {dateRangeWarning && (
+                    <Alert variant="destructive" className="mt-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{dateRangeWarning}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                  >
                     Retour
                   </Button>
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Vérification...' : 'Continuer'}
+                  <Button
+                    type="submit"
+                    disabled={loading || !dateRange?.from || !dateRange?.to}
+                    className="flex-1"
+                  >
+                    {loading ? "Vérification..." : "Continuer"}
                   </Button>
                 </div>
               </form>
@@ -391,7 +632,7 @@ export default function NewReservationPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+                  <Euro className="h-5 w-5" />
                   Aperçu
                 </CardTitle>
               </CardHeader>
@@ -404,16 +645,22 @@ export default function NewReservationPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Euro className="h-4 w-4 text-muted-foreground" />
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Tarif journalier</p>
-                    <p className="font-semibold">{formatCurrency(parseFloat(selectedVehicle.dailyRate))}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tarif journalier
+                    </p>
+                    <p className="font-semibold">
+                      {formatCurrency(parseFloat(selectedVehicle.dailyRate))}
+                    </p>
                   </div>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                   <span className="font-semibold">Total estimé</span>
-                  <span className="text-xl font-bold text-primary">{formatCurrency(preview.subtotal)}</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formatCurrency(preview.subtotal)}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -432,72 +679,233 @@ export default function NewReservationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleStep3} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName" className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Prénom *
-                  </Label>
+            <form onSubmit={handleStep3} className="space-y-6">
+              {/* Mode selection */}
+              <div className="grid md:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerMode("new");
+                    setCustomerId("");
+                    setSearchQuery("");
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    customerMode === "new"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <User
+                      className={`h-4 w-4 ${customerMode === "new" ? "text-primary" : "text-muted-foreground"}`}
+                    />
+                    <span className="font-medium text-sm">Nouveau client</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Créer un nouveau client
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerMode("existing");
+                    setCustomerId("");
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    customerMode === "existing"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <User
+                      className={`h-4 w-4 ${customerMode === "existing" ? "text-primary" : "text-muted-foreground"}`}
+                    />
+                    <span className="font-medium text-sm">Client existant</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Rechercher dans la base
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerMode("self-fill");
+                    setCustomerId("");
+                  }}
+                  className={`p-4 border-2 rounded-lg transition-all text-left ${
+                    customerMode === "self-fill"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail
+                      className={`h-4 w-4 ${customerMode === "self-fill" ? "text-primary" : "text-muted-foreground"}`}
+                    />
+                    <span className="font-medium text-sm">Client remplira</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Infos avant paiement
+                  </p>
+                </button>
+              </div>
+
+              <Separator />
+
+              {/* Existing customer search */}
+              {customerMode === "existing" && (
+                <div className="space-y-3">
+                  <Label htmlFor="search">Rechercher un client</Label>
                   <Input
-                    id="firstName"
-                    value={customerData.firstName}
-                    onChange={(e) =>
-                      setCustomerData({ ...customerData, firstName: e.target.value })
-                    }
-                    required
+                    id="search"
+                    placeholder="Nom, email, téléphone... (min 3 caractères)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoComplete="off"
                   />
+
+                  {searchQuery.length > 0 && searchQuery.length < 3 && (
+                    <div className="text-xs text-muted-foreground">
+                      Tapez au moins 3 caractères pour lancer la recherche
+                    </div>
+                  )}
+
+                  {searchLoading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                      Recherche en cours...
+                    </div>
+                  )}
+
+                  {searchResults.length > 0 && (
+                    <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                      {searchResults.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => selectExistingCustomer(customer)}
+                          className="w-full p-3 hover:bg-muted/50 transition-colors text-left"
+                        >
+                          <div className="font-medium">
+                            {customer.firstName} {customer.lastName}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {customer.email}
+                          </div>
+                          {customer.phone && (
+                            <div className="text-xs text-muted-foreground">
+                              {customer.phone}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!searchLoading &&
+                    searchQuery.length >= 3 &&
+                    searchResults.length === 0 && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Aucun client trouvé pour "{searchQuery}". Essayez un
+                          autre terme de recherche ou créez un nouveau client.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName" className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    Nom *
-                  </Label>
-                  <Input
-                    id="lastName"
-                    value={customerData.lastName}
-                    onChange={(e) =>
-                      setCustomerData({ ...customerData, lastName: e.target.value })
-                    }
-                    required
-                  />
+              )}
+
+              {/* New customer form */}
+              {customerMode === "new" && (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">Prénom *</Label>
+                      <Input
+                        id="firstName"
+                        value={customerData.firstName}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            firstName: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Nom *</Label>
+                      <Input
+                        id="lastName"
+                        value={customerData.lastName}
+                        onChange={(e) =>
+                          setCustomerData({
+                            ...customerData,
+                            lastName: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customerData.email}
+                      onChange={(e) =>
+                        setCustomerData({
+                          ...customerData,
+                          email: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <PhoneInput
+                      country={"fr"} // France par défaut
+                      value={customerData.phone} // ex: "+33767338363"
+                      onChange={(phone) =>
+                        setCustomerData({ ...customerData, phone })
+                      }
+                      inputProps={{
+                        name: "phone",
+                        required: true,
+                        autoFocus: false,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  Email *
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={customerData.email}
-                  onChange={(e) =>
-                    setCustomerData({ ...customerData, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  Téléphone
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={customerData.phone}
-                  onChange={(e) =>
-                    setCustomerData({ ...customerData, phone: e.target.value })
-                  }
-                />
-              </div>
+              )}
+
+              {/* Self-fill mode info */}
+              {customerMode === "self-fill" && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    Vous envoyez un lien au client pour qu'il remplisse ses
+                    informations personnelles avant de procéder au paiement.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(2)}
+                >
                   Retour
                 </Button>
                 <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Création...' : 'Continuer'}
+                  {loading ? "Création..." : "Continuer"}
                 </Button>
               </div>
             </form>
@@ -523,43 +931,85 @@ export default function NewReservationPage() {
               </h4>
               <Separator />
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-muted/50 transition-colors group">
+                  <div className="flex items-center gap-2 flex-1">
                     <div className="rounded-md bg-primary/10 p-2">
                       <Car className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-sm text-muted-foreground">Véhicule</span>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Véhicule</p>
+                      <p className="font-medium">
+                        {selectedVehicle.brand} {selectedVehicle.model}
+                      </p>
+                    </div>
                   </div>
-                  <span className="font-medium">
-                    {selectedVehicle.brand} {selectedVehicle.model}
-                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStep(1)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Modifier
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <div className="flex items-center gap-2">
+
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-muted/50 transition-colors group">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="rounded-md bg-primary/10 p-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Dates</p>
+                      <p className="font-medium text-sm">
+                        {formatDate(new Date(startDate))} -{" "}
+                        {formatDate(new Date(endDate))}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStep(2)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Modifier
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-muted/50 transition-colors group">
+                  <div className="flex items-center gap-2 flex-1">
                     <div className="rounded-md bg-primary/10 p-2">
                       <User className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-sm text-muted-foreground">Client</span>
-                  </div>
-                  <span className="font-medium">
-                    {customerData.firstName} {customerData.lastName}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-background rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <Clock className="h-4 w-4 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Client</p>
+                      <p className="font-medium">
+                        {customerMode === "self-fill"
+                          ? "Le client remplira ses infos"
+                          : `${customerData.firstName} ${customerData.lastName}`}
+                      </p>
                     </div>
-                    <span className="text-sm text-muted-foreground">Durée</span>
                   </div>
-                  <span className="font-medium">{preview.days} jour(s)</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStep(3)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    Modifier
+                  </Button>
                 </div>
               </div>
               <Separator />
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Sous-total</span>
-                  <span className="font-medium">{formatCurrency(preview.subtotal)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(preview.subtotal)}
+                  </span>
                 </div>
                 {includeInsurance && (
                   <div className="flex justify-between text-sm">
@@ -567,16 +1017,20 @@ export default function NewReservationPage() {
                       <Shield className="h-3 w-3 text-muted-foreground" />
                       <span className="text-muted-foreground">Assurance</span>
                     </div>
-                    <span className="font-medium">{formatCurrency(preview.insurance)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(preview.insurance)}
+                    </span>
                   </div>
                 )}
                 <Separator />
                 <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
+                    <Euro className="h-5 w-5 text-primary" />
                     <span className="font-bold">Total</span>
                   </div>
-                  <span className="text-xl font-bold text-primary">{formatCurrency(preview.total)}</span>
+                  <span className="text-xl font-bold text-primary">
+                    {formatCurrency(preview.total)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -586,9 +1040,14 @@ export default function NewReservationPage() {
                 <Checkbox
                   id="insurance"
                   checked={includeInsurance}
-                  onCheckedChange={(checked) => setIncludeInsurance(checked === true)}
+                  onCheckedChange={(checked) =>
+                    setIncludeInsurance(checked === true)
+                  }
                 />
-                <Label htmlFor="insurance" className="flex items-center gap-2 text-sm font-normal cursor-pointer flex-1">
+                <Label
+                  htmlFor="insurance"
+                  className="flex items-center gap-2 text-sm font-normal cursor-pointer flex-1"
+                >
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   Inclure assurance (5€/jour)
                 </Label>
@@ -596,7 +1055,11 @@ export default function NewReservationPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setStep(3)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(3)}
+              >
                 Retour
               </Button>
               <Button
@@ -604,7 +1067,7 @@ export default function NewReservationPage() {
                 disabled={loading}
                 className="flex-1"
               >
-                {loading ? 'Création...' : 'Créer la réservation'}
+                {loading ? "Création..." : "Créer la réservation"}
               </Button>
             </div>
           </CardContent>

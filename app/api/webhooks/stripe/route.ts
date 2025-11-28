@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 import { teams, reservations, payments, contracts } from '@/drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { generateContractPDF } from '@/lib/pdf/generate';
 import { sendPaymentConfirmedEmail } from '@/lib/resend';
 import { createYousignSignatureRequest } from '@/lib/yousign';
+
+// This is required to receive raw body for Stripe webhook signature verification
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -40,7 +43,13 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const metadata = session.metadata as { teamId?: string; organizationId?: string; reservationId?: string };
+        const metadata = session.metadata as {
+          teamId?: string;
+          organizationId?: string;
+          reservationId?: string;
+          paymentType?: 'deposit' | 'total' | 'balance' | 'caution';
+          balancePaymentToken?: string;
+        };
 
         console.log('[Stripe Webhook] checkout.session.completed - Session ID:', session.id);
         console.log('[Stripe Webhook] Metadata:', JSON.stringify(metadata));
@@ -58,8 +67,63 @@ export async function POST(req: NextRequest) {
           console.log('[Stripe Webhook] Subscription activated for team:', metadata.teamId);
         }
 
-        // Handle reservation payment
-        if (metadata?.reservationId) {
+        // Handle balance payment (solde)
+        if (metadata?.paymentType === 'balance' && metadata?.reservationId) {
+          console.log('[Stripe Webhook] Processing balance payment for:', metadata.reservationId);
+
+          // Update payment record to succeeded
+          await db
+            .update(payments)
+            .set({
+              status: 'succeeded',
+              paidAt: new Date(),
+              stripePaymentIntentId: session.payment_intent as string,
+            })
+            .where(
+              and(
+                eq(payments.reservationId, metadata.reservationId),
+                eq(payments.type, 'balance')
+              )
+            );
+
+          // Update reservation with Stripe balance intent ID
+          await db
+            .update(reservations)
+            .set({
+              stripeBalanceIntentId: session.payment_intent as string,
+            })
+            .where(eq(reservations.id, metadata.reservationId));
+
+          console.log('[Stripe Webhook] Balance payment processed for reservation:', metadata.reservationId);
+
+          // Get full reservation data to send confirmation email
+          const fullReservation = await db.query.reservations.findFirst({
+            where: eq(reservations.id, metadata.reservationId),
+            with: {
+              vehicle: true,
+              customer: true,
+              team: true,
+            },
+          });
+
+          if (fullReservation?.customer) {
+            try {
+              await sendPaymentConfirmedEmail({
+                to: fullReservation.customer.email,
+                customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+                vehicle: {
+                  brand: fullReservation.vehicle.brand,
+                  model: fullReservation.vehicle.model,
+                },
+              });
+              console.log('[Stripe Webhook] Balance payment confirmation email sent to:', fullReservation.customer.email);
+            } catch (emailError) {
+              console.error('[Stripe Webhook] Failed to send balance payment confirmation email:', emailError);
+            }
+          }
+        }
+        // Handle reservation payment (initial deposit or full payment)
+        else if (metadata?.reservationId) {
           console.log('[Stripe Webhook] Processing reservation payment for:', metadata.reservationId);
 
           const updateResult = await db

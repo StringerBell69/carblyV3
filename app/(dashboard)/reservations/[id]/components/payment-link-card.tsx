@@ -10,8 +10,9 @@ import { toast } from 'sonner';
 interface PaymentLinkCardProps {
   magicLink: string;
   reservationId: string;
-  customerEmail: string;
-  customerName: string;
+  customerEmail?: string;
+  customerName?: string;
+  hasCustomer: boolean;
 }
 
 export function PaymentLinkCard({
@@ -19,6 +20,7 @@ export function PaymentLinkCard({
   reservationId,
   customerEmail,
   customerName,
+  hasCustomer,
 }: PaymentLinkCardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -55,14 +57,22 @@ export function PaymentLinkCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-yellow-900">
           <AlertCircle className="h-5 w-5" />
-          Lien de paiement
+          {hasCustomer ? 'Lien de paiement' : 'Lien pour le client'}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <p className="text-sm text-yellow-800">
-            Partagez ce lien avec <strong>{customerName}</strong> pour qu'il puisse payer sa réservation
-          </p>
+          {hasCustomer ? (
+            <p className="text-sm text-yellow-800">
+              Partagez ce lien avec <strong>{customerName}</strong> pour qu'il puisse payer sa réservation
+            </p>
+          ) : (
+            <p className="text-sm text-yellow-800">
+              Le client doit d'abord remplir ses informations personnelles avant de pouvoir payer.
+              <br />
+              <strong>Partagez ce lien avec le client</strong> pour qu'il complète ses coordonnées et procède au paiement.
+            </p>
+          )}
           <div className="flex gap-2">
             <input
               type="text"
@@ -88,16 +98,18 @@ export function PaymentLinkCard({
               )}
             </Button>
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={handleSendEmail}
-              disabled={isSending}
-              className="flex-1"
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {isSending ? 'Envoi en cours...' : `Envoyer à ${customerEmail}`}
-            </Button>
-          </div>
+          {hasCustomer && customerEmail && (
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleSendEmail}
+                disabled={isSending}
+                className="flex-1"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {isSending ? 'Envoi en cours...' : `Envoyer à ${customerEmail}`}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
