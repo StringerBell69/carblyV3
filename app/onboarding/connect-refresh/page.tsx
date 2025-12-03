@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,19 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
 import { checkExistingTeam } from '../actions';
 
-export default function ConnectRefreshPage() {
+function ConnectRefreshContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get('team_id');
-const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string}>({});
+  const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string}>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-      checkForExistingTeam();
-    }, []);
+  useEffect(() => {
+    checkForExistingTeam();
+  }, []);
 
-const checkForExistingTeam = async () => {
+  const checkForExistingTeam = async () => {
     try {
       const result = await checkExistingTeam();
       if (result.team) {
@@ -31,8 +33,6 @@ const checkForExistingTeam = async () => {
       setLoading(false);
     }
   };
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleRetry = async () => {
     if (!existingTeamStatus.id) {
@@ -90,7 +90,6 @@ const checkForExistingTeam = async () => {
               </Alert>
             )}
 
-
             <div className="space-y-3 pt-2">
               <Button
                 onClick={handleRetry}
@@ -122,5 +121,24 @@ const checkForExistingTeam = async () => {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ConnectRefreshPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+              <p className="text-gray-600">Chargement...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <ConnectRefreshContent />
+    </Suspense>
   );
 }
