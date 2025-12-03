@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { getReservation } from '../actions';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
@@ -25,7 +25,9 @@ import {
 import { PaymentLinkCard } from './components/payment-link-card';
 import { ContractSection } from './components/contract-section';
 import { BalancePaymentCard } from './components/balance-payment-card';
+import { CancelReservationButton } from './components/cancel-reservation-button';
 import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
+import { isYousignEnabled } from '@/lib/feature-flags';
 
 const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, icon: any }> = {
   draft: { variant: 'secondary', label: 'Brouillon', icon: FileText },
@@ -76,6 +78,13 @@ export default async function ReservationDetailPage({
   const balanceAlreadyPaid = !!balancePayment;
   const shouldShowBalanceCard = hasDeposit && (depositPaid || balanceAlreadyPaid);
 
+  // Calculate total paid amount for cancellation
+  // IMPORTANT: Only include online payments (with stripePaymentIntentId) for refunds
+  // Cash payments cannot be refunded through Stripe
+  const totalPaidOnline = reservation.payments
+    ?.filter((p) => p.status === 'succeeded' && p.stripePaymentIntentId)
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
@@ -93,13 +102,21 @@ export default async function ReservationDetailPage({
               Réservation #{reservation.id.slice(0, 8)}
             </p>
           </div>
-          <Badge
-            variant={statusConfig[reservation.status].variant}
-            className="text-base px-4 py-2"
-          >
-            <StatusIcon className="mr-2 h-4 w-4" />
-            {statusConfig[reservation.status].label}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge
+              variant={statusConfig[reservation.status].variant}
+              className="text-base px-4 py-2"
+            >
+              <StatusIcon className="mr-2 h-4 w-4" />
+              {statusConfig[reservation.status].label}
+            </Badge>
+            <CancelReservationButton
+              reservationId={reservation.id}
+              status={reservation.status}
+              hasPayments={reservation.payments && reservation.payments.length > 0}
+              totalPaidOnline={totalPaidOnline}
+            />
+          </div>
         </div>
       </div>
 
@@ -233,6 +250,10 @@ export default async function ReservationDetailPage({
                     <p className="font-semibold text-lg">
                       {formatDate(reservation.startDate)}
                     </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(reservation.startDate)}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -243,6 +264,10 @@ export default async function ReservationDetailPage({
                     <p className="text-sm text-muted-foreground">Date de fin</p>
                     <p className="font-semibold text-lg">
                       {formatDate(reservation.endDate)}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(reservation.endDate)}
                     </p>
                   </div>
                 </div>
@@ -280,6 +305,7 @@ export default async function ReservationDetailPage({
             reservationId={reservation.id}
             contract={reservation.contracts?.[0]}
             status={reservation.status}
+            yousignEnabled={isYousignEnabled()}
           />
 
           {shouldShowBalanceCard && (

@@ -21,7 +21,7 @@ import {
   MapPin,
   Clock,
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
 import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 
 export default function PublicReservationPage() {
@@ -275,11 +275,17 @@ export default function PublicReservationPage() {
             <CardContent className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">Début</span>
-                <span className="font-medium">{formatDate(reservation.startDate)}</span>
+                <div className="text-right">
+                  <p className="font-medium">{formatDate(reservation.startDate)}</p>
+                  <p className="text-xs text-gray-500">{formatTime(reservation.startDate)}</p>
+                </div>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">Fin</span>
-                <span className="font-medium">{formatDate(reservation.endDate)}</span>
+                <div className="text-right">
+                  <p className="font-medium">{formatDate(reservation.endDate)}</p>
+                  <p className="text-xs text-gray-500">{formatTime(reservation.endDate)}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -375,11 +381,17 @@ export default function PublicReservationPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600">Du:</span>
-                      <p className="font-medium text-gray-900">{formatDate(reservation.startDate)}</p>
+                      <div>
+                        <p className="font-medium text-gray-900">{formatDate(reservation.startDate)}</p>
+                        <p className="text-xs text-gray-600">à {formatTime(reservation.startDate)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600">Au:</span>
-                      <p className="font-medium text-gray-900">{formatDate(reservation.endDate)}</p>
+                      <div>
+                        <p className="font-medium text-gray-900">{formatDate(reservation.endDate)}</p>
+                        <p className="text-xs text-gray-600">à {formatTime(reservation.endDate)}</p>
+                      </div>
                     </div>
                   </div>
                 </div>

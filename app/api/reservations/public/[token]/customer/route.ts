@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { reservations, customers } from '@/drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { reservations, customers, teams } from '@/drizzle/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(
   req: NextRequest,
@@ -20,9 +20,12 @@ export async function POST(
       );
     }
 
-    // Find reservation by token
+    // Find reservation by token with team info to get organizationId
     const reservation = await db.query.reservations.findFirst({
       where: eq(reservations.magicLinkToken, token),
+      with: {
+        team: true,
+      },
     });
 
     if (!reservation) {
@@ -40,16 +43,22 @@ export async function POST(
       );
     }
 
-    // Check if customer already exists with this email
+    const organizationId = reservation.team.organizationId;
+
+    // Check if customer already exists with this email within the same organization
     let customer = await db.query.customers.findFirst({
-      where: eq(customers.email, email.toLowerCase()),
+      where: and(
+        eq(customers.email, email.toLowerCase()),
+        eq(customers.organizationId, organizationId)
+      ),
     });
 
-    // If not, create new customer
+    // If not, create new customer for this organization
     if (!customer) {
       const [newCustomer] = await db
         .insert(customers)
         .values({
+          organizationId,
           email: email.toLowerCase(),
           firstName,
           lastName,

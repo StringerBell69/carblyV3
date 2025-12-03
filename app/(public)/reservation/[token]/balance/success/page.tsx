@@ -35,6 +35,7 @@ export default function BalanceSuccessPage() {
 
   const verifyPayment = async () => {
     try {
+      // Use the balance payment token to get reservation details
       const response = await fetch(`/api/reservations/public/${token}/balance`);
       const data = await response.json();
 
@@ -146,8 +147,8 @@ export default function BalanceSuccessPage() {
 
             {/* Action Button */}
             <div className="pt-4">
-              <Link href={`/reservation/${token}`}>
-                <Button className="w-full" size="lg">
+              <Link href={reservation?.magicLinkToken ? `/reservation/${reservation.magicLinkToken}` : '#'}>
+                <Button className="w-full" size="lg" disabled={!reservation?.magicLinkToken}>
                   <Home className="w-4 h-4 mr-2" />
                   Voir ma réservation
                 </Button>

@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/table';
 import { db } from '@/lib/db';
 import { customers, reservations } from '@/drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { getCurrentOrganizationId } from '@/lib/session';
 import {
   ArrowLeft,
   User,
@@ -32,8 +33,18 @@ export default async function CustomerDetailPage({
 }: {
   params: { id: string };
 }) {
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    notFound();
+  }
+
+  // Ensure customer belongs to current organization
   const customer = await db.query.customers.findFirst({
-    where: eq(customers.id, params.id),
+    where: and(
+      eq(customers.id, params.id),
+      eq(customers.organizationId, organizationId)
+    ),
   });
 
   if (!customer) {

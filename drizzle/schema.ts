@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean, integer, decimal, jsonb, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, boolean, integer, decimal, jsonb, pgEnum, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -21,6 +21,7 @@ export const organizations = pgTable('organizations', {
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   teams: many(teams),
+  customers: many(customers),
 }));
 
 // Teams (= Agences)
@@ -181,7 +182,8 @@ export const vehiclesRelations = relations(vehicles, ({ one, many }) => ({
 // Customers (clients finaux)
 export const customers = pgTable('customers', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').unique().notNull(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
+  email: text('email').notNull(),
   phone: text('phone'),
   firstName: text('first_name'),
   lastName: text('last_name'),
@@ -191,9 +193,16 @@ export const customers = pgTable('customers', {
   loyaltyPoints: integer('loyalty_points').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  // Contrainte d'unicité : un email unique par organisation
+  emailOrgUnique: unique().on(table.email, table.organizationId),
+}));
 
-export const customersRelations = relations(customers, ({ many }) => ({
+export const customersRelations = relations(customers, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [customers.organizationId],
+    references: [organizations.id],
+  }),
   reservations: many(reservations),
   communications: many(communications),
 }));

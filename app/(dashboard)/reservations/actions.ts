@@ -2,14 +2,13 @@
 
 import { db } from '@/lib/db';
 import { reservations, vehicles, customers, payments } from '@/drizzle/schema';
-import { getCurrentTeamId } from '@/lib/session';
+import { getCurrentTeamId, getCurrentOrganizationId } from '@/lib/session';
 import { eq, and, or, lte, gte, ilike, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { generateRandomToken, calculateRentalPrice } from '@/lib/utils';
 import { sendReservationPaymentLink } from '@/lib/resend';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
 import { checkReservationLimit, PlanLimitError } from '@/lib/plan-limits';
+import { isYousignEnabled } from '@/lib/feature-flags';
 
 export async function getReservations(filters?: {
   status?: string;
@@ -329,9 +328,9 @@ export async function updateReservationStatus(
 
 export async function searchCustomers(query: string) {
   try {
-    const teamId = await getCurrentTeamId();
+    const organizationId = await getCurrentOrganizationId();
 
-    if (!teamId) {
+    if (!organizationId) {
       return { error: 'Unauthorized' };
     }
 
@@ -343,17 +342,21 @@ export async function searchCustomers(query: string) {
     const searchPattern = `%${searchTerm}%`;
 
     // Search by email, phone, first name, or last name using ILIKE (case-insensitive LIKE)
+    // Only search within the current organization
     const customersList = await db
       .select()
       .from(customers)
       .where(
-        or(
-          ilike(customers.email, searchPattern),
-          ilike(customers.phone, searchPattern),
-          ilike(customers.firstName, searchPattern),
-          ilike(customers.lastName, searchPattern),
-          // Also search full name
-          sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}) ILIKE ${searchPattern}`
+        and(
+          eq(customers.organizationId, organizationId),
+          or(
+            ilike(customers.email, searchPattern),
+            ilike(customers.phone, searchPattern),
+            ilike(customers.firstName, searchPattern),
+            ilike(customers.lastName, searchPattern),
+            // Also search full name
+            sql`CONCAT(${customers.firstName}, ' ', ${customers.lastName}) ILIKE ${searchPattern}`
+          )
         )
       )
       .limit(10);
@@ -372,27 +375,29 @@ export async function createCustomer(data: {
   phone?: string;
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const organizationId = await getCurrentOrganizationId();
 
-    if (!session?.user) {
+    if (!organizationId) {
       return { error: 'Unauthorized' };
     }
 
-    // Check if customer exists
+    // Check if customer exists within the same organization
     const existingCustomer = await db.query.customers.findFirst({
-      where: eq(customers.email, data.email.toLowerCase()),
+      where: and(
+        eq(customers.email, data.email.toLowerCase()),
+        eq(customers.organizationId, organizationId)
+      ),
     });
 
     if (existingCustomer) {
       return { error: 'L\'email est déjà utilisé par : ' + existingCustomer.firstName + ' ' + existingCustomer.lastName };
     }
 
-    // Create customer
+    // Create customer linked to the organization
     const [customer] = await db
       .insert(customers)
       .values({
+        organizationId,
         email: data.email.toLowerCase(),
         firstName: data.firstName,
         lastName: data.lastName,
@@ -505,6 +510,11 @@ export async function generateReservationContract(reservationId: string) {
 
 export async function sendContractForSignature(reservationId: string) {
   try {
+    // Check if YouSign is enabled
+    if (!isYousignEnabled()) {
+      return { error: 'La signature électronique est actuellement désactivée. Cette fonctionnalité sera bientôt disponible.' };
+    }
+
     const teamId = await getCurrentTeamId();
 
     if (!teamId) {
@@ -598,6 +608,11 @@ export async function sendContractForSignature(reservationId: string) {
 
 export async function checkContractSignatureStatus(reservationId: string) {
   try {
+    // Check if YouSign is enabled
+    if (!isYousignEnabled()) {
+      return { error: 'La signature électronique est actuellement désactivée. Cette fonctionnalité sera bientôt disponible.' };
+    }
+
     const teamId = await getCurrentTeamId();
 
     if (!teamId) {
@@ -791,9 +806,9 @@ export async function sendBalancePaymentLink(reservationId: string) {
       return { error: 'No customer associated with this reservation' };
     }
 
-    // Check if deposit was paid
+    // Check if deposit was paid (can be either 'deposit' or 'total' payment)
     const depositPayment = fullReservation.payments.find(
-      (p) => p.type === 'deposit' && p.status === 'succeeded'
+      (p) => (p.type === 'deposit' || p.type === 'total') && p.status === 'succeeded'
     );
 
     if (!depositPayment) {

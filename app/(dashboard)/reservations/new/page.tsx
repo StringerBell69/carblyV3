@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import PhoneInput from "react-phone-input-2";
+import { PhoneInput } from "@/components/phone-input";
 
 export default function NewReservationPage() {
   const router = useRouter();
@@ -48,6 +48,8 @@ export default function NewReservationPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [startTime, setStartTime] = useState('10:00');
+  const [endTime, setEndTime] = useState('10:00');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [bookedDates, setBookedDates] = useState<Date[]>([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -203,11 +205,12 @@ export default function NewReservationPage() {
     setError('');
 
     try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      // Combine date and time
+      const start = new Date(`${startDate}T${startTime}:00`);
+      const end = new Date(`${endDate}T${endTime}:00`);
 
       if (end <= start) {
-        throw new Error('La date de fin doit être après la date de début');
+        throw new Error('La date et l\'heure de fin doivent être après la date et l\'heure de début');
       }
 
       const result = await checkVehicleAvailability({
@@ -267,8 +270,9 @@ export default function NewReservationPage() {
     setError('');
 
     try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      // Combine date and time
+      const start = new Date(`${startDate}T${startTime}:00`);
+      const end = new Date(`${endDate}T${endTime}:00`);
 
       const rental = calculateRentalPrice(
         parseFloat(selectedVehicle.dailyRate),
@@ -306,8 +310,9 @@ export default function NewReservationPage() {
   const calculatePreview = () => {
     if (!selectedVehicle || !startDate || !endDate) return null;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Combine date and time for preview
+    const start = new Date(`${startDate}T${startTime}:00`);
+    const end = new Date(`${endDate}T${endTime}:00`);
     const days = calculateDays(start, end);
 
     if (days <= 0) return null;
@@ -608,6 +613,36 @@ export default function NewReservationPage() {
                     </Alert>
                   )}
                 </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" />
+                      Heure de début *
+                    </Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endTime" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" />
+                      Heure de fin *
+                    </Label>
+                    <Input
+                      id="endTime"
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -870,16 +905,12 @@ export default function NewReservationPage() {
                   <div className="space-y-2">
                     <Label htmlFor="phone">Téléphone</Label>
                     <PhoneInput
-                      country={"fr"} // France par défaut
+                      international
+                      addInternationalOption
                       value={customerData.phone} // ex: "+33767338363"
-                      onChange={(phone) =>
-                        setCustomerData({ ...customerData, phone })
+                      onChange={(value) =>
+                        setCustomerData({ ...customerData, phone: value })
                       }
-                      inputProps={{
-                        name: "phone",
-                        required: true,
-                        autoFocus: false,
-                      }}
                     />
                   </div>
                 </div>
@@ -960,10 +991,12 @@ export default function NewReservationPage() {
                       <Calendar className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">Dates</p>
+                      <p className="text-xs text-muted-foreground">Dates et heures</p>
                       <p className="font-medium text-sm">
-                        {formatDate(new Date(startDate))} -{" "}
-                        {formatDate(new Date(endDate))}
+                        {formatDate(new Date(startDate))} à {startTime}
+                      </p>
+                      <p className="font-medium text-sm">
+                        {formatDate(new Date(endDate))} à {endTime}
                       </p>
                     </div>
                   </div>
@@ -1035,7 +1068,7 @@ export default function NewReservationPage() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                 <Checkbox
                   id="insurance"
@@ -1052,7 +1085,7 @@ export default function NewReservationPage() {
                   Inclure assurance (5€/jour)
                 </Label>
               </div>
-            </div>
+            </div> */}
 
             <div className="flex gap-2">
               <Button

@@ -44,6 +44,12 @@ export async function GET(req: NextRequest) {
 
     for (const reservation of endingReservations) {
       try {
+        // Skip if no customer
+        if (!reservation.customer) {
+          console.log(`[Cron Reminders] Skipping reservation ${reservation.id} - no customer`);
+          continue;
+        }
+
         // Send email reminder
         await sendReturnReminderEmail({
           to: reservation.customer.email,

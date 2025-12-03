@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Loader2, CheckCircle2, AlertCircle, Send, RefreshCw } from 'lucide-react';
+import { FileText, Loader2, CheckCircle2, AlertCircle, Send, RefreshCw, Lock } from 'lucide-react';
 import { generateReservationContract, sendContractForSignature, checkContractSignatureStatus } from '../../actions';
 import { toast } from 'sonner';
 
@@ -17,9 +17,10 @@ interface ContractSectionProps {
     yousignSignatureRequestId?: string | null;
   } | null;
   status: string;
+  yousignEnabled?: boolean;
 }
 
-export function ContractSection({ reservationId, contract, status }: ContractSectionProps) {
+export function ContractSection({ reservationId, contract, status, yousignEnabled = false }: ContractSectionProps) {
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -92,6 +93,15 @@ export function ContractSection({ reservationId, contract, status }: ContractSec
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!yousignEnabled && (
+          <div className="flex items-center gap-2 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <Lock className="h-5 w-5" />
+            <div>
+              <p className="font-medium">Signature électronique - Prochainement</p>
+              <p className="text-sm text-gray-600">La signature électronique avec YouSign sera bientôt disponible</p>
+            </div>
+          </div>
+        )}
         {contract?.signedAt && contract?.signedPdfUrl ? (
           // Contract is signed
           <>
@@ -189,8 +199,9 @@ export function ContractSection({ reservationId, contract, status }: ContractSec
             <div className="flex gap-2">
               <Button
                 onClick={handleSendForSignature}
-                disabled={sending}
+                disabled={sending || !yousignEnabled}
                 className="flex-1"
+                title={!yousignEnabled ? 'Fonctionnalité prochainement disponible' : ''}
               >
                 {sending ? (
                   <>
@@ -206,9 +217,10 @@ export function ContractSection({ reservationId, contract, status }: ContractSec
               </Button>
               <Button
                 onClick={handleCheckStatus}
-                disabled={checking}
+                disabled={checking || !yousignEnabled}
                 variant="outline"
                 className="flex-1"
+                title={!yousignEnabled ? 'Fonctionnalité prochainement disponible' : ''}
               >
                 {checking ? (
                   <>

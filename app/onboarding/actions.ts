@@ -36,7 +36,7 @@ export async function createTeam(data: {
   organizationId: string;
   name: string;
   address?: string;
-  plan: 'free' |'starter' | 'pro' | 'business';
+  plan: 'free' | 'starter' | 'pro' | 'business';
 }) {
   try {
     const session = await auth.api.getSession({
@@ -48,9 +48,13 @@ export async function createTeam(data: {
     }
 
     // Determine max vehicles based on plan
-    const maxVehicles = data.plan === 'starter' ? 5 : data.plan === 'pro' ? 20 : 100;
+    const maxVehicles =
+      data.plan === 'free' ? 3 :
+      data.plan === 'starter' ? 10 :
+      data.plan === 'pro' ? 25 :
+      100; // business
 
-    // Create team
+    // Create team (neon-http doesn't support transactions, so we use sequential operations)
     const [team] = await db
       .insert(teams)
       .values({
@@ -59,7 +63,8 @@ export async function createTeam(data: {
         address: data.address,
         plan: data.plan,
         maxVehicles,
-        subscriptionStatus: 'incomplete',
+        // Free plan is active by default (no payment needed)
+        subscriptionStatus: data.plan === 'free' ? 'active' : 'incomplete',
       })
       .returning();
 

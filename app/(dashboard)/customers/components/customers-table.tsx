@@ -37,8 +37,8 @@ import {
 type Customer = {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   phone: string | null;
   identityVerified: boolean;
   loyaltyPoints: number;
@@ -57,8 +57,8 @@ export function CustomersTable({ customers }: CustomersTableProps) {
   const filteredCustomers = customers.filter((customer) => {
     const query = searchQuery.toLowerCase();
     return (
-      customer.firstName.toLowerCase().includes(query) ||
-      customer.lastName.toLowerCase().includes(query) ||
+      customer.firstName?.toLowerCase().includes(query) ||
+      customer.lastName?.toLowerCase().includes(query) ||
       customer.email.toLowerCase().includes(query) ||
       customer.phone?.toLowerCase().includes(query)
     );
@@ -96,7 +96,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
             <TableHead className="text-center">Statut</TableHead>
             <TableHead className="text-center">Points</TableHead>
             <TableHead>Inscrit le</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            {/* <TableHead className="text-right">Actions</TableHead> */}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -163,7 +163,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
+                 {/*  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />
@@ -180,8 +180,8 @@ export function CustomersTable({ customers }: CustomersTableProps) {
                         <Mail className="h-4 w-4 mr-2" />
                         Envoyer un email
                       </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </DropdownMenuContent> 
+                  </DropdownMenu>*/}
                 </TableCell>
               </TableRow>
             ))

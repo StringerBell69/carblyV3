@@ -42,10 +42,20 @@ export async function POST(
       );
     }
 
+    // Check if customer exists
+    if (!reservation.customer) {
+      return NextResponse.json(
+        { error: 'Customer information required. Please complete your information first.' },
+        { status: 400 }
+      );
+    }
+
     // Calculate amount to pay (deposit or total)
-    const amountToPay = reservation.depositAmount
-      ? parseFloat(reservation.depositAmount)
+    const hasDeposit = !!reservation.depositAmount;
+    const amountToPay = hasDeposit
+      ? parseFloat(reservation.depositAmount!)
       : parseFloat(reservation.totalAmount);
+    const paymentType = hasDeposit ? 'deposit' : 'total';
 
     // Get team plan (default to 'free' if not set)
     const teamPlan = (reservation.team.plan || 'free') as 'free' | 'starter' | 'pro' | 'business';
@@ -54,6 +64,7 @@ export async function POST(
     console.log('[Checkout] Team ID:', reservation.teamId);
     console.log('[Checkout] Team Plan:', teamPlan);
     console.log('[Checkout] Amount to pay:', amountToPay);
+    console.log('[Checkout] Payment type:', paymentType);
 
     // Create Stripe Connect Checkout Session
     const { url, error } = await createReservationCheckoutSession({
@@ -67,6 +78,7 @@ export async function POST(
       cancelUrl: `${process.env.NEXT_PUBLIC_URL}/reservation/${token}`,
       description: `Location ${reservation.vehicle.brand} ${reservation.vehicle.model} - ${reservation.customer.firstName} ${reservation.customer.lastName}`,
       cautionAmount: reservation.depositAmount ? parseFloat(reservation.depositAmount) : undefined,
+      paymentType,
     });
 
     if (error || !url) {

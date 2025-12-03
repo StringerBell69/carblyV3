@@ -28,8 +28,9 @@ export interface PlanLimits {
 }
 
 export interface PlatformFees {
-  percentageFee: number  // En pourcentage (ex: 4.9)
-  fixedFee: number       // En euros (ex: 0.50)
+  percentageFee: number  // En pourcentage (ex: 5)
+  minFee: number  // Frais minimum en euros pour couvrir les frais Stripe
+  maxCap: number | null  // Plafond maximum en euros (null = pas de plafond)
 }
 
 export interface PlanConfig {
@@ -49,7 +50,7 @@ export interface PlanConfig {
 export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
   free: {
     subscription: { monthly: 0, yearly: 0 },
-    platformFees: { percentageFee: 4.9, fixedFee: 0.50 },
+    platformFees: { percentageFee: 5, minFee: 2.5, maxCap: null },  // 5%, minimum 2.50€, pas de plafond
     limits: {
       vehicles: 3,
       users: 1,
@@ -76,7 +77,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
   },
   starter: {
     subscription: { monthly: 49, yearly: 490 },
-    platformFees: { percentageFee: 2.9, fixedFee: 0.50 },
+    platformFees: { percentageFee: 2, minFee: 2, maxCap: null },  // 2%, minimum 2€, pas de plafond
     limits: {
       vehicles: 10,
       users: 3,
@@ -106,7 +107,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
   },
   pro: {
     subscription: { monthly: 99, yearly: 990 },
-    platformFees: { percentageFee: 1.9, fixedFee: 0.30 },
+    platformFees: { percentageFee: 1, minFee: 1.5, maxCap: 15 },  // 1%, minimum 1.50€, max 15€
     limits: {
       vehicles: 25,
       users: 10,
@@ -136,7 +137,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
   },
   business: {
     subscription: { monthly: 199, yearly: 1990 },
-    platformFees: { percentageFee: 0.9, fixedFee: 0.30 },
+    platformFees: { percentageFee: 0.5, minFee: 1, maxCap: 5 },  // 0.5%, minimum 1€, max 5€
     limits: {
       vehicles: null,
       users: null,
@@ -176,15 +177,35 @@ export function calculatePlatformFees(
 ) {
   const config = PLAN_PRICING[plan].platformFees
 
-  const percentageFee = (amount * config.percentageFee) / 100
-  const totalFee = percentageFee + config.fixedFee
+  // Calculer le pourcentage
+  let calculatedFee = (amount * config.percentageFee) / 100
+
+  // Appliquer le minimum
+  let isMinimumApplied = false
+  if (calculatedFee < config.minFee) {
+    calculatedFee = config.minFee
+    isMinimumApplied = true
+  }
+
+  // Appliquer le plafond si défini
+  let isCapped = false
+  if (config.maxCap !== null && calculatedFee > config.maxCap) {
+    calculatedFee = config.maxCap
+    isCapped = true
+  }
+
+  const totalFee = Number(calculatedFee.toFixed(2))
 
   return {
     amount,
-    percentageFee: Number(percentageFee.toFixed(2)),
-    fixedFee: config.fixedFee,
-    totalFee: Number(totalFee.toFixed(2)),
+    percentageFee: config.percentageFee,
+    minFee: config.minFee,
+    maxCap: config.maxCap,
+    calculatedFee: Number(calculatedFee.toFixed(2)),
+    totalFee,
     netAmount: Number((amount - totalFee).toFixed(2)),
+    isCapped,
+    isMinimumApplied,
   }
 }
 

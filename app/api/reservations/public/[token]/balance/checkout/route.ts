@@ -7,10 +7,10 @@ import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     if (!token) {
       return NextResponse.json({ error: 'Token manquant' }, { status: 400 });
@@ -76,51 +76,80 @@ export async function POST(
     const teamPlan = (reservation.team.plan || 'free') as PlanType;
     const fees = calculatePlatformFees(balanceBeforeFees, teamPlan);
 
-    // Total balance to pay (agency gets balanceBeforeFees, Carbly gets fees.totalFee)
-    const totalBalanceAmount = balanceBeforeFees + fees.totalFee;
-
     // Convert to cents for Stripe
-    const amountInCents = Math.round(totalBalanceAmount * 100);
+    const balanceInCents = Math.round(balanceBeforeFees * 100);
     const applicationFeeInCents = Math.round(fees.totalFee * 100);
 
+    // Build fee description
+    let feeDescription = `${fees.percentageFee}%`;
+
+    if (fees.isMinimumApplied) {
+      feeDescription += ` (minimum ${fees.minFee}€ appliqué)`;
+    } else if (fees.maxCap !== null) {
+      feeDescription += ` (max ${fees.maxCap}€)`;
+      if (fees.isCapped) {
+        feeDescription += ' - Plafond atteint';
+      }
+    }
+
     // Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'sepa_debit'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `Solde de réservation - ${reservation.vehicle.brand} ${reservation.vehicle.model}`,
-              description: `Du ${reservation.startDate.toLocaleDateString('fr-FR')} au ${reservation.endDate.toLocaleDateString('fr-FR')}`,
+    const session = await stripe.checkout.sessions.create(
+      {
+        payment_method_types: ['card', 'sepa_debit'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: `Solde de réservation - ${reservation.vehicle.brand} ${reservation.vehicle.model}`,
+                description: `Du ${reservation.startDate.toLocaleDateString('fr-FR')} au ${reservation.endDate.toLocaleDateString('fr-FR')}`,
+              },
+              unit_amount: balanceInCents,
             },
-            unit_amount: amountInCents,
+            quantity: 1,
           },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/reservation/${token}/balance/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/reservation/${token}/balance`,
-      customer_email: reservation.customer.email,
-      metadata: {
-        reservationId: reservation.id,
-        customerId: reservation.customer.id,
-        teamId: reservation.team.id,
-        paymentType: 'balance',
-        balancePaymentToken: token,
-      },
-      payment_intent_data: {
-        application_fee_amount: applicationFeeInCents,
-        transfer_data: {
-          destination: reservation.team.stripeConnectAccountId,
-        },
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Frais Carbly',
+                description: feeDescription,
+              },
+              unit_amount: applicationFeeInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/reservation/${token}/balance/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/reservation/${token}/balance`,
+        customer_email: reservation.customer.email,
         metadata: {
           reservationId: reservation.id,
+          customerId: reservation.customer.id,
+          teamId: reservation.team.id,
           paymentType: 'balance',
+          balancePaymentToken: token,
+          platformFeeTotal: String(fees.totalFee), // Add fee to session metadata for webhook
+        },
+        payment_intent_data: {
+          // Use application_fee_amount so Stripe fees are deducted from the connected account
+          // Carbly takes only the platform fee, Stripe fees are paid by the rental owner
+          application_fee_amount: applicationFeeInCents, // Carbly's fee only
+          metadata: {
+            reservationId: reservation.id,
+            paymentType: 'balance',
+            platformFeePercentage: String(fees.percentageFee),
+            platformFeeMaxCap: fees.maxCap !== null ? String(fees.maxCap) : 'none',
+            platformFeeTotal: String(fees.totalFee),
+            platformFeeIsCapped: String(fees.isCapped),
+          },
         },
       },
-    });
+      {
+        stripeAccount: reservation.team.stripeConnectAccountId, // Payment is created on the connected account
+      }
+    );
 
     // Create payment record with pending status
     await db.insert(payments).values({

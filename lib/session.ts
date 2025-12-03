@@ -54,6 +54,15 @@ export const getCurrentTeamId = cache(async () => {
 });
 
 /**
+ * Get current organization ID
+ * Convenience wrapper for getCurrentTeam
+ */
+export const getCurrentOrganizationId = cache(async () => {
+  const team = await getCurrentTeam();
+  return team?.organizationId || null;
+});
+
+/**
  * Require authentication
  * Throws error if user is not authenticated
  */

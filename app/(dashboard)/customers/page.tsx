@@ -2,11 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/db';
 import { customers, reservations } from '@/drizzle/schema';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and } from 'drizzle-orm';
 import { Users, Plus } from 'lucide-react';
 import { CustomersTable } from './components/customers-table';
+import { getCurrentOrganizationId } from '@/lib/session';
 
 export default async function CustomersPage() {
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return <div>Unauthorized</div>;
+  }
+
   const customersList = await db
     .select({
       id: customers.id,
@@ -21,6 +28,7 @@ export default async function CustomersPage() {
     })
     .from(customers)
     .leftJoin(reservations, eq(customers.id, reservations.customerId))
+    .where(eq(customers.organizationId, organizationId))
     .groupBy(customers.id)
     .orderBy(sql`COUNT(${reservations.id}) DESC`);
 

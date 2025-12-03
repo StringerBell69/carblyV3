@@ -6,6 +6,11 @@ import { Plus, Car, Fuel, Settings, Users } from 'lucide-react';
 import { getVehicles } from './actions';
 import { formatCurrency } from '@/lib/utils';
 import { VehicleCardActions } from './vehicle-card-actions';
+import { teams } from '@/drizzle/schema';
+import { db } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { getCurrentTeamId } from '@/lib/session';
+
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'destructive' }> = {
   available: { label: 'Disponible', variant: 'success' },
@@ -23,11 +28,28 @@ const statusLabels: Record<string, string> = {
 
 export default async function VehiclesPage() {
   const result = await getVehicles();
-
-  if ('error' in result) {
+  
+  const teamId = await getCurrentTeamId();
+  if (!teamId) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">{result.error}</p>
+        <p className="text-red-600">Aucune team trouvée</p>
+      </div>
+    );
+  }
+  const team = await db.query.teams.findFirst({
+    where: eq(teams.id, teamId),
+    with: {
+      organization: true,
+    },
+  });
+  
+  
+
+  if ('error' in result || !team) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">{result.error || 'Aucune team trouvée'}</p>
       </div>
     );
   }
@@ -43,12 +65,12 @@ export default async function VehiclesPage() {
             Gérez votre flotte de véhicules
           </p>
         </div>
-        <Link href="/vehicles/new">
+        {team.maxVehicles > vehicles.length && <Link href="/vehicles/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Ajouter un véhicule
           </Button>
-        </Link>
+        </Link>}
       </div>
 
       {vehicles.length === 0 ? (

@@ -29,7 +29,7 @@ const navigation = [
   { name: 'Véhicules', href: '/vehicles', icon: Car },
   { name: 'Réservations', href: '/reservations', icon: Calendar },
   { name: 'Clients', href: '/customers', icon: Users },
-  { name: 'Communications', href: '/communications', icon: MessageSquare },
+  // { name: 'Communications', href: '/communications', icon: MessageSquare },
   { name: 'Paramètres', href: '/settings', icon: Settings },
 ];
 

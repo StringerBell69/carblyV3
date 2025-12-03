@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Check } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Check, Info } from 'lucide-react'
 import { PLAN_PRICING, calculatePlatformFees, type PlanType } from '@/lib/pricing-config'
 
 interface PricingCardProps {
@@ -13,7 +14,8 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ plan, config, highlighted }: PricingCardProps) {
-  const fees = calculatePlatformFees(100, plan)
+  const fees100 = calculatePlatformFees(100, plan)
+  const fees30 = calculatePlatformFees(30, plan)
 
   return (
     <Card className={highlighted ? 'border-blue-500 shadow-lg relative' : ''}>
@@ -41,19 +43,62 @@ export function PricingCard({ plan, config, highlighted }: PricingCardProps) {
       <CardContent className="space-y-6">
         {/* Frais de transaction */}
         <div className="bg-muted/50 p-4 rounded-lg">
-          <p className="text-sm font-semibold mb-2">Frais par transaction</p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-semibold">Frais par transaction</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">
+                    <strong>Comment sont calculés les frais ?</strong>
+                  </p>
+                  <p className="text-xs mt-1">
+                    Nous appliquons {config.platformFees.percentageFee}% du montant de la transaction, avec un minimum de {config.platformFees.minFee}€.
+                  </p>
+                  <p className="text-xs mt-1">
+                    Pour les petites transactions (où {config.platformFees.percentageFee}% serait inférieur à {config.platformFees.minFee}€),
+                    le minimum de {config.platformFees.minFee}€ s'applique pour couvrir les frais de traitement Stripe.
+                  </p>
+                  {config.platformFees.maxCap !== null && (
+                    <p className="text-xs mt-1">
+                      Les frais sont plafonnés à {config.platformFees.maxCap}€ maximum par transaction.
+                    </p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span>Commission :</span>
               <span className="font-medium">{config.platformFees.percentageFee}%</span>
             </div>
             <div className="flex justify-between">
-              <span>Frais fixes :</span>
-              <span className="font-medium">{config.platformFees.fixedFee}€</span>
+              <span>Minimum :</span>
+              <span className="font-medium">{config.platformFees.minFee}€</span>
             </div>
+            {config.platformFees.maxCap !== null && (
+              <div className="flex justify-between">
+                <span>Plafond :</span>
+                <span className="font-medium">Max {config.platformFees.maxCap}€</span>
+              </div>
+            )}
+            {config.platformFees.maxCap === null && (
+              <div className="flex justify-between">
+                <span>Plafond :</span>
+                <span className="font-medium text-muted-foreground">Aucun</span>
+              </div>
+            )}
           </div>
-          <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
-            Ex: Location 100€ → Vous recevez {fees.netAmount}€
+          <div className="mt-2 pt-2 border-t text-xs text-muted-foreground space-y-1">
+            <div>Ex: Location 100€ → Frais {fees100.totalFee}€ → Vous recevez {fees100.netAmount}€</div>
+            {fees30.isMinimumApplied && (
+              <div className="text-orange-600">
+                Ex: Location 30€ → Frais {fees30.totalFee}€ (minimum) → Vous recevez {fees30.netAmount}€
+              </div>
+            )}
           </div>
         </div>
 

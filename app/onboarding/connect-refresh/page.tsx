@@ -7,17 +7,35 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
+import { checkExistingTeam } from '../actions';
 
 export default function ConnectRefreshPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get('team_id');
+const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string}>({});
 
+    useEffect(() => {
+      checkForExistingTeam();
+    }, []);
+
+const checkForExistingTeam = async () => {
+    try {
+      const result = await checkExistingTeam();
+      if (result.team) {
+        setExistingTeamStatus(result.team);
+      }
+    } catch (err) {
+      console.error('Error checking existing team:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleRetry = async () => {
-    if (!teamId) {
+    if (!existingTeamStatus.id) {
       setError('Team ID missing');
       return;
     }
@@ -26,7 +44,7 @@ export default function ConnectRefreshPage() {
     setError('');
 
     try {
-      const result = await getConnectOnboardingLink(teamId);
+      const result = await getConnectOnboardingLink(existingTeamStatus.id);
 
       if (result.error || !result.url) {
         setError(result.error || 'Failed to get onboarding link');
@@ -72,10 +90,11 @@ export default function ConnectRefreshPage() {
               </Alert>
             )}
 
+
             <div className="space-y-3 pt-2">
               <Button
                 onClick={handleRetry}
-                disabled={loading || !teamId}
+                disabled={loading || !existingTeamStatus.id}
                 className="w-full"
               >
                 {loading ? (

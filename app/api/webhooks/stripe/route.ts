@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { generateContractPDF } from '@/lib/pdf/generate';
 import { sendPaymentConfirmedEmail } from '@/lib/resend';
 import { createYousignSignatureRequest } from '@/lib/yousign';
+import { isYousignEnabled } from '@/lib/feature-flags';
 
 // This is required to receive raw body for Stripe webhook signature verification
 export const runtime = 'nodejs';
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest) {
 
   try {
     console.log('[Stripe Webhook] Processing event:', event.type);
+    console.log('[Stripe Webhook] Event ID:', event.id);
+    console.log('[Stripe Webhook] Account:', event.account || 'platform');
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -49,52 +52,103 @@ export async function POST(req: NextRequest) {
           reservationId?: string;
           paymentType?: 'deposit' | 'total' | 'balance' | 'caution';
           balancePaymentToken?: string;
+          customerId?: string;
         };
 
         console.log('[Stripe Webhook] checkout.session.completed - Session ID:', session.id);
         console.log('[Stripe Webhook] Metadata:', JSON.stringify(metadata));
+        console.log('[Stripe Webhook] Payment Intent:', session.payment_intent);
 
         // Handle subscription payment (onboarding)
         if (metadata?.teamId && session.subscription) {
+          const plan = (metadata as any).plan as 'free' | 'starter' | 'pro' | 'business';
+
+          // Determine max vehicles based on plan
+          const maxVehicles =
+            plan === 'free' ? 3 :
+            plan === 'starter' ? 10 :
+            plan === 'pro' ? 25 :
+            100; // business
+
           await db
             .update(teams)
             .set({
               stripeSubscriptionId: session.subscription as string,
               subscriptionStatus: 'active',
+              plan: plan,
+              maxVehicles: maxVehicles,
             })
             .where(eq(teams.id, metadata.teamId));
 
-          console.log('[Stripe Webhook] Subscription activated for team:', metadata.teamId);
+          console.log('[Stripe Webhook] Subscription activated for team:', metadata.teamId, 'with plan:', plan, 'maxVehicles:', maxVehicles);
         }
 
         // Handle balance payment (solde)
         if (metadata?.paymentType === 'balance' && metadata?.reservationId) {
           console.log('[Stripe Webhook] Processing balance payment for:', metadata.reservationId);
 
-          // Update payment record to succeeded
-          await db
-            .update(payments)
-            .set({
-              status: 'succeeded',
-              paidAt: new Date(),
-              stripePaymentIntentId: session.payment_intent as string,
-            })
-            .where(
-              and(
-                eq(payments.reservationId, metadata.reservationId),
-                eq(payments.type, 'balance')
-              )
-            );
+          try {
+            // Get payment_intent ID (can be string or object)
+            const paymentIntentId = typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id;
 
-          // Update reservation with Stripe balance intent ID
-          await db
-            .update(reservations)
-            .set({
-              stripeBalanceIntentId: session.payment_intent as string,
-            })
-            .where(eq(reservations.id, metadata.reservationId));
+            console.log('[Stripe Webhook] Payment Intent ID:', paymentIntentId);
 
-          console.log('[Stripe Webhook] Balance payment processed for reservation:', metadata.reservationId);
+            // Get platform fee from session metadata
+            let platformFee = 2.5; // Default fallback for free plan
+            if ((metadata as any).platformFeeTotal) {
+              platformFee = parseFloat((metadata as any).platformFeeTotal);
+              console.log('[Stripe Webhook] Platform fee from session metadata:', platformFee);
+            } else if (paymentIntentId) {
+              // Try to retrieve from payment_intent metadata
+              try {
+                const pi = await stripe.paymentIntents.retrieve(
+                  paymentIntentId,
+                  event.account ? { stripeAccount: event.account } : undefined
+                );
+                if (pi.metadata?.platformFeeTotal) {
+                  platformFee = parseFloat(pi.metadata.platformFeeTotal);
+                  console.log('[Stripe Webhook] Platform fee from payment_intent metadata:', platformFee);
+                }
+              } catch (piError) {
+                console.error('[Stripe Webhook] Could not retrieve payment_intent:', piError);
+              }
+            }
+
+            // Update payment record to succeeded
+            const updateResult = await db
+              .update(payments)
+              .set({
+                status: 'succeeded',
+                paidAt: new Date(),
+                stripePaymentIntentId: paymentIntentId || null,
+                fee: platformFee.toString(), // Update fee if it was pending
+              })
+              .where(
+                and(
+                  eq(payments.reservationId, metadata.reservationId),
+                  eq(payments.type, 'balance')
+                )
+              );
+
+            console.log('[Stripe Webhook] Payment update result:', updateResult);
+
+            // Update reservation with Stripe balance intent ID
+            if (paymentIntentId) {
+              await db
+                .update(reservations)
+                .set({
+                  stripeBalanceIntentId: paymentIntentId,
+                })
+                .where(eq(reservations.id, metadata.reservationId));
+            }
+
+            console.log('[Stripe Webhook] Balance payment processed for reservation:', metadata.reservationId);
+          } catch (dbError) {
+            console.error('[Stripe Webhook] Database error processing balance payment:', dbError);
+            throw dbError;
+          }
 
           // Get full reservation data to send confirmation email
           const fullReservation = await db.query.reservations.findFirst({
@@ -106,11 +160,11 @@ export async function POST(req: NextRequest) {
             },
           });
 
-          if (fullReservation?.customer) {
+          if (fullReservation?.customer?.email) {
             try {
               await sendPaymentConfirmedEmail({
                 to: fullReservation.customer.email,
-                customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+                customerName: `${fullReservation.customer.firstName || ''} ${fullReservation.customer.lastName || ''}`.trim(),
                 vehicle: {
                   brand: fullReservation.vehicle.brand,
                   model: fullReservation.vehicle.model,
@@ -119,127 +173,178 @@ export async function POST(req: NextRequest) {
               console.log('[Stripe Webhook] Balance payment confirmation email sent to:', fullReservation.customer.email);
             } catch (emailError) {
               console.error('[Stripe Webhook] Failed to send balance payment confirmation email:', emailError);
+              // Don't throw - email failure shouldn't fail the webhook
             }
+          } else {
+            console.log('[Stripe Webhook] Skipping email - no customer email found');
           }
         }
         // Handle reservation payment (initial deposit or full payment)
         else if (metadata?.reservationId) {
           console.log('[Stripe Webhook] Processing reservation payment for:', metadata.reservationId);
 
-          const updateResult = await db
-            .update(reservations)
-            .set({
-              status: 'paid',
-              stripePaymentIntentId: session.payment_intent as string,
-            })
-            .where(eq(reservations.id, metadata.reservationId))
-            .returning();
+          try {
+            // Get payment_intent ID (can be string or object)
+            const paymentIntentId = typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id;
 
-          console.log('[Stripe Webhook] Reservation update result:', updateResult);
+            console.log('[Stripe Webhook] Payment Intent ID:', paymentIntentId);
 
-          // Create payment record
-          const reservation = await db.query.reservations.findFirst({
-            where: eq(reservations.id, metadata.reservationId),
-          });
+            const updateResult = await db
+              .update(reservations)
+              .set({
+                status: 'paid',
+                stripePaymentIntentId: paymentIntentId || null,
+              })
+              .where(eq(reservations.id, metadata.reservationId))
+              .returning();
 
-          console.log('[Stripe Webhook] Reservation after update - status:', reservation?.status);
+            console.log('[Stripe Webhook] Reservation update result:', updateResult);
 
-          if (reservation) {
-            await db.insert(payments).values({
-              reservationId: metadata.reservationId,
-              amount: reservation.totalAmount,
-              fee: '0.99',
-              type: 'total',
-              stripePaymentIntentId: session.payment_intent as string,
-              status: 'succeeded',
-              paidAt: new Date(),
-            });
-
-            console.log('[Stripe Webhook] Reservation paid:', metadata.reservationId);
-
-            // Get full reservation data
-            const fullReservation = await db.query.reservations.findFirst({
+            // Create payment record
+            const reservation = await db.query.reservations.findFirst({
               where: eq(reservations.id, metadata.reservationId),
-              with: {
-                vehicle: true,
-                customer: true,
-              },
             });
 
-            // Check if full amount was paid (not just deposit)
-            const amountPaid = session.amount_total ? session.amount_total / 100 : 0; // Stripe amounts are in cents
-            const totalAmount = parseFloat(reservation.totalAmount);
-            const isFullPayment = !reservation.depositAmount || amountPaid >= totalAmount;
+            console.log('[Stripe Webhook] Reservation after update - status:', reservation?.status);
 
-            let contractPdfUrl: string | undefined;
+            if (reservation) {
+              // Get payment details from session
+              const paymentType = (metadata.paymentType || 'total') as 'deposit' | 'total';
+              const amountPaidTotal = session.amount_total ? session.amount_total / 100 : 0; // Total including fees
 
-            if (isFullPayment) {
-              // Only generate contract if full payment was made
-              console.log('[Stripe Webhook] Full payment received, generating contract');
+              // Get platform fee from metadata (more reliable than payment_intent for Connect)
+              let platformFee = 0.99; // Fallback
 
-              const contractResult = await generateContractPDF(metadata.reservationId);
-
-              if (contractResult.error) {
-                console.error('[Stripe Webhook] Failed to generate contract:', contractResult.error);
+              // Try to get fee from session metadata or payment_intent
+              if (metadata && (metadata as any).platformFeeTotal) {
+                platformFee = parseFloat((metadata as any).platformFeeTotal);
               } else {
-                console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
-                contractPdfUrl = contractResult.pdfUrl;
-
-                // Initiate Yousign signature request
-                if (fullReservation) {
-                  try {
-                    const yousignResult = await createYousignSignatureRequest({
-                      contractPdfUrl: contractResult.pdfUrl!,
-                      customer: {
-                        firstName: fullReservation.customer.firstName || '',
-                        lastName: fullReservation.customer.lastName || '',
-                        email: fullReservation.customer.email || '',
-                        phone: fullReservation.customer.phone || undefined,
-                      },
-                      reservationId: metadata.reservationId,
-                    });
-
-                    if (yousignResult.error) {
-                      console.error('[Stripe Webhook] Yousign error:', yousignResult.error);
-                    } else if (yousignResult.signatureRequestId) {
-                      // Update contract with Yousign signature request ID
-                      await db
-                        .update(contracts)
-                        .set({
-                          yousignSignatureRequestId: yousignResult.signatureRequestId,
-                          updatedAt: new Date(),
-                        })
-                        .where(eq(contracts.reservationId, metadata.reservationId));
-
-                      console.log('[Stripe Webhook] Yousign signature request created:', yousignResult.signatureRequestId);
-                    }
-                  } catch (yousignError) {
-                    console.error('[Stripe Webhook] Failed to initiate Yousign:', yousignError);
-                    // Continue even if Yousign fails
+                // Try to fetch payment_intent to get metadata
+                try {
+                  if (paymentIntentId) {
+                    const pi = await stripe.paymentIntents.retrieve(
+                      paymentIntentId,
+                      { stripeAccount: event.account || undefined }
+                    );
+                    platformFee = pi.metadata?.platformFeeTotal
+                      ? parseFloat(pi.metadata.platformFeeTotal)
+                      : 0.99;
                   }
+                } catch (piError) {
+                  console.error('[Stripe Webhook] Error fetching payment intent:', piError);
                 }
               }
-            } else {
-              console.log('[Stripe Webhook] Deposit payment only, contract will be generated manually by agency');
-            }
 
-            if (fullReservation) {
-              // Send confirmation email
-              try {
-                await sendPaymentConfirmedEmail({
-                  to: fullReservation.customer.email,
-                  customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
-                  vehicle: {
-                    brand: fullReservation.vehicle.brand,
-                    model: fullReservation.vehicle.model,
-                  },
-                  yousignLink: contractPdfUrl, // Will be undefined if only deposit paid
-                });
-                console.log('[Stripe Webhook] Confirmation email sent to:', fullReservation.customer.email);
-              } catch (emailError) {
-                console.error('[Stripe Webhook] Failed to send confirmation email:', emailError);
+              const amountPaidByCustomer = amountPaidTotal - platformFee; // Amount without platform fee
+
+              await db.insert(payments).values({
+                reservationId: metadata.reservationId,
+                amount: amountPaidByCustomer.toString(),
+                fee: platformFee.toString(),
+                type: paymentType,
+                stripePaymentIntentId: paymentIntentId || null,
+                status: 'succeeded',
+                paidAt: new Date(),
+              });
+
+              console.log('[Stripe Webhook] Payment recorded:', {
+                reservationId: metadata.reservationId,
+                type: paymentType,
+                amount: amountPaidByCustomer,
+                fee: platformFee,
+              });
+
+              // Get full reservation data
+              const fullReservation = await db.query.reservations.findFirst({
+                where: eq(reservations.id, metadata.reservationId),
+                with: {
+                  vehicle: true,
+                  customer: true,
+                },
+              });
+
+              // Check if full amount was paid (not just deposit)
+              const totalAmount = parseFloat(reservation.totalAmount);
+              const isFullPayment = paymentType === 'total';
+
+              let contractPdfUrl: string | undefined;
+
+              if (isFullPayment) {
+                // Only generate contract if full payment was made
+                console.log('[Stripe Webhook] Full payment received, generating contract');
+
+                const contractResult = await generateContractPDF(metadata.reservationId);
+
+                if (contractResult.error) {
+                  console.error('[Stripe Webhook] Failed to generate contract:', contractResult.error);
+                } else {
+                  console.log('[Stripe Webhook] Contract generated:', contractResult.pdfUrl);
+                  contractPdfUrl = contractResult.pdfUrl;
+
+                  // Initiate Yousign signature request
+                  if (fullReservation?.customer && isYousignEnabled()) {
+                    try {
+                      const yousignResult = await createYousignSignatureRequest({
+                        contractPdfUrl: contractResult.pdfUrl!,
+                        customer: {
+                          firstName: fullReservation.customer.firstName || '',
+                          lastName: fullReservation.customer.lastName || '',
+                          email: fullReservation.customer.email || '',
+                          phone: fullReservation.customer.phone || undefined,
+                        },
+                        reservationId: metadata.reservationId,
+                      });
+
+                      if (yousignResult.error) {
+                        console.error('[Stripe Webhook] Yousign error:', yousignResult.error);
+                      } else if (yousignResult.signatureRequestId) {
+                        // Update contract with Yousign signature request ID
+                        await db
+                          .update(contracts)
+                          .set({
+                            yousignSignatureRequestId: yousignResult.signatureRequestId,
+                            updatedAt: new Date(),
+                          })
+                          .where(eq(contracts.reservationId, metadata.reservationId));
+
+                        console.log('[Stripe Webhook] Yousign signature request created:', yousignResult.signatureRequestId);
+                      }
+                    } catch (yousignError) {
+                      console.error('[Stripe Webhook] Failed to initiate Yousign:', yousignError);
+                      // Continue even if Yousign fails
+                    }
+                  }
+                }
+              } else {
+                console.log('[Stripe Webhook] Deposit payment only, contract will be generated manually by agency');
+              }
+
+              if (fullReservation?.customer?.email) {
+                // Send confirmation email
+                try {
+                  await sendPaymentConfirmedEmail({
+                    to: fullReservation.customer.email,
+                    customerName: `${fullReservation.customer.firstName || ''} ${fullReservation.customer.lastName || ''}`.trim(),
+                    vehicle: {
+                      brand: fullReservation.vehicle.brand,
+                      model: fullReservation.vehicle.model,
+                    },
+                    yousignLink: contractPdfUrl, // Will be undefined if only deposit paid
+                  });
+                  console.log('[Stripe Webhook] Confirmation email sent to:', fullReservation.customer.email);
+                } catch (emailError) {
+                  console.error('[Stripe Webhook] Failed to send confirmation email:', emailError);
+                  // Don't throw - email failure shouldn't fail the webhook
+                }
+              } else {
+                console.log('[Stripe Webhook] Skipping email - no customer email found');
               }
             }
+          } catch (dbError) {
+            console.error('[Stripe Webhook] Error processing reservation payment:', dbError);
+            throw dbError;
           }
         }
 

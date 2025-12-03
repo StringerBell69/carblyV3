@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { calculatePlatformFees, type PlanType } from './pricing-config';
+import { calculatePlatformFees } from './pricing-config';
 
 // Allow undefined during build time
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
@@ -15,65 +15,66 @@ export const PLATFORM_FEE_AMOUNT = 99; // in cents
 // Plan configurations for platform subscriptions
 export const PLANS = {
   free: {
-    name: 'Free',
+    name: "Free",
     price: 0,
-    priceId: '',
+    priceId: "",
     maxVehicles: 3,
     features: [
-      'Jusqu\'à 3 véhicules',
-      '10 réservations/mois',
-      'Paiements Stripe Connect',
-      'Frais: 4,9% + 0,50€',
-      'Support communauté',
+      "Jusqu'à 3 véhicules",
+      "10 réservations/mois",
+      "Paiements en ligne",
+      "Contrats PDF",
+      "Frais: 5% (min 2.50€)",
+      "Support basique",
     ],
   },
   starter: {
-    name: 'Starter',
+    name: "Starter",
     price: 49,
-    priceId: process.env.STRIPE_PRICE_STARTER || 'price_starter',
+    priceId: process.env.STRIPE_PRICE_STARTER || "price_starter",
     maxVehicles: 10,
     features: [
-      'Jusqu\'à 10 véhicules',
-      'Réservations illimitées',
-      'Acomptes configurables',
-      'Contrats PDF + Signature électronique',
-      'Check-in/Check-out (prochainement)',
-      'Frais: 2,9% + 0,50€',
-      'Support email',
+      "Jusqu'à 10 véhicules",
+      "Réservations illimitées",
+      "Acomptes configurables",
+      "Signature électronique (très prochainement)",
+      "Check-in/Check-out (prochainement)",
+      "Frais: 2% (min 2€)",
+      "Support email",
     ],
   },
   pro: {
-    name: 'Pro',
+    name: "Pro",
     price: 99,
-    priceId: process.env.STRIPE_PRICE_PRO || 'price_pro',
+    priceId: process.env.STRIPE_PRICE_PRO || "price_pro",
     maxVehicles: 25,
     features: [
-      'Jusqu\'à 25 véhicules',
-      'Toutes les fonctionnalités Starter',
-      'Caution en ligne (pré-autorisation)',
-      'SMS automatiques',
-      'Vérification d\'identité (prochainement)',
-      'Programme de fidélité',
-      'Analytics avancés',
-      'Frais: 1,9% + 0,30€',
-      'Support prioritaire',
+      "Jusqu'à 25 véhicules",
+      "Toutes les fonctionnalités Starter",
+      "Caution en ligne (pré-autorisation)",
+      "SMS automatiques",
+      "Vérification d'identité (prochainement)",
+      "Programme de fidélité",
+      "Analytics avancés",
+      "Frais: 1% (min 1.50€, max 15€)",
+      "Support prioritaire",
     ],
   },
   business: {
-    name: 'Business',
+    name: "Business",
     price: 199,
-    priceId: process.env.STRIPE_PRICE_BUSINESS || 'price_business',
+    priceId: process.env.STRIPE_PRICE_BUSINESS || "price_business",
     maxVehicles: -1, // unlimited
     features: [
-      'Véhicules illimités',
-      'Toutes les fonctionnalités Pro',
-      'Multi-agences',
-      'API complète',
-      'Rapports personnalisés',
-      'Single Sign-On (SSO)',
-      'White Label',
-      'Frais: 0,9% + 0,30€',
-      'Support dédié 24/7',
+      "Véhicules illimités",
+      "Toutes les fonctionnalités Pro",
+      "Multi-agences",
+      // 'API complète',
+      // 'Rapports personnalisés',
+      "Single Sign-On (SSO)",
+      "White Label (très prochainement)",
+      "Frais: 0.5% (min 1€, max 5€)",
+      "Support dédié 24/7",
     ],
   },
 } as const;
@@ -196,6 +197,7 @@ export async function createReservationCheckoutSession({
   cancelUrl,
   description,
   cautionAmount, // optional deposit hold
+  paymentType = 'total', // 'deposit' or 'total'
 }: {
   amount: number;
   connectedAccountId: string;
@@ -207,6 +209,7 @@ export async function createReservationCheckoutSession({
   cancelUrl: string;
   description: string;
   cautionAmount?: number;
+  paymentType?: 'deposit' | 'total';
 }): Promise<{ url?: string; sessionId?: string; error?: string }> {
   try {
     const amountInCents = Math.round(amount * 100);
@@ -220,6 +223,18 @@ export async function createReservationCheckoutSession({
       teamId,
       teamPlan,
     });
+
+    // Build fee description
+    let feeDescription = `${fees.percentageFee}%`;
+
+    if (fees.isMinimumApplied) {
+      feeDescription += ` (minimum ${fees.minFee}€ appliqué)`;
+    } else if (fees.maxCap !== null) {
+      feeDescription += ` (max ${fees.maxCap}€)`;
+      if (fees.isCapped) {
+        feeDescription += ' - Plafond atteint';
+      }
+    }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {
@@ -238,7 +253,7 @@ export async function createReservationCheckoutSession({
           currency: 'eur',
           product_data: {
             name: 'Frais Carbly',
-            description: `${fees.percentageFee}% + ${fees.fixedFee}€`,
+            description: feeDescription,
           },
           unit_amount: platformFeeInCents,
         },
@@ -246,39 +261,46 @@ export async function createReservationCheckoutSession({
       },
     ];
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card', 'sepa_debit'],
-      customer_email: customerEmail,
-      line_items: lineItems,
-      payment_intent_data: {
-        application_fee_amount: platformFeeInCents,
-        transfer_data: {
-          destination: connectedAccountId,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: 'payment',
+        payment_method_types: ['card', 'sepa_debit'],
+        customer_email: customerEmail,
+        line_items: lineItems,
+        payment_intent_data: {
+          // Use application_fee_amount so Stripe fees are deducted from the connected account
+          // Carbly takes only the platform fee, Stripe fees are paid by the rental owner
+          application_fee_amount: platformFeeInCents, // Carbly's fee only
+          metadata: {
+            reservationId,
+            teamId,
+            teamPlan,
+            platformFeePercentage: String(fees.percentageFee),
+            platformFeeMaxCap: fees.maxCap !== null ? String(fees.maxCap) : 'none',
+            platformFeeTotal: String(fees.totalFee),
+            platformFeeIsCapped: String(fees.isCapped),
+            type: 'reservation_payment',
+          },
         },
         metadata: {
           reservationId,
           teamId,
           teamPlan,
-          platformFeePercentage: String(fees.percentageFee),
-          platformFeeFixed: String(fees.fixedFee),
-          platformFeeTotal: String(fees.totalFee),
-          type: 'reservation_payment',
+          paymentType,
+          platformFeeTotal: String(fees.totalFee), // Add fee to session metadata for webhook
+        },
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        custom_text: {
+          submit: {
+            message: 'Paiement sécurisé géré par Carbly',
+          },
         },
       },
-      metadata: {
-        reservationId,
-        teamId,
-        teamPlan,
-      },
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      custom_text: {
-        submit: {
-          message: 'Paiement sécurisé géré par Carbly',
-        },
-      },
-    });
+      {
+        stripeAccount: connectedAccountId, // Payment is created on the connected account
+      }
+    );
 
     console.log('[Stripe] Checkout session created:', {
       sessionId: session.id,

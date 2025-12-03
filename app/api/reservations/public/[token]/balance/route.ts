@@ -6,10 +6,10 @@ import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     if (!token) {
       return NextResponse.json({ error: 'Token manquant' }, { status: 400 });
@@ -30,9 +30,9 @@ export async function GET(
       return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 });
     }
 
-    // Check if deposit was paid
+    // Check if deposit was paid (can be either 'deposit' or 'total' payment)
     const depositPayment = reservation.payments.find(
-      (p) => p.type === 'deposit' && p.status === 'succeeded'
+      (p) => (p.type === 'deposit' || p.type === 'total') && p.status === 'succeeded'
     );
 
     if (!depositPayment) {

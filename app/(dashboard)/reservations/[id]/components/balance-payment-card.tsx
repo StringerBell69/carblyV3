@@ -151,11 +151,7 @@ export function BalancePaymentCard({
               <span className="font-bold text-blue-900">Solde restant</span>
               <span className="font-bold text-lg text-blue-900">{balanceBeforeFees.toFixed(2)}€</span>
             </div>
-            <div className="text-xs text-blue-700 mt-2 bg-blue-50 p-2 rounded">
-              <strong>💳 Paiement en ligne :</strong> {balanceBeforeFees.toFixed(2)}€ + {platformFees.toFixed(2)}€ de frais = {totalBalance.toFixed(2)}€
-              <br />
-              <strong>💵 Paiement en espèces :</strong> {balanceBeforeFees.toFixed(2)}€ (sans frais)
-            </div>
+            
           </div>
 
           <div className="space-y-2">
@@ -199,10 +195,7 @@ export function BalancePaymentCard({
             </Button>
           </div>
 
-          <div className="text-xs text-blue-700 space-y-1">
-            <p><strong>💳 Paiement en ligne :</strong> Le client paie {totalBalance.toFixed(2)}€ (solde + frais Carbly)</p>
-            <p><strong>💵 Paiement en espèces :</strong> Le client paie {balanceBeforeFees.toFixed(2)}€ (solde uniquement, sans frais)</p>
-          </div>
+         
         </div>
       </CardContent>
     </Card>

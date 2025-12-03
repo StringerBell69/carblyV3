@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { communications, customers } from '@/drizzle/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { getCurrentTeamId } from '@/lib/session';
+import { getCurrentTeamId, getCurrentOrganizationId } from '@/lib/session';
 import { sendEmail, sendSMS } from '@/lib/communications';
 
 // GET /api/communications - Get all communications for current team
@@ -58,13 +58,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify customer exists
+    // Verify customer exists and belongs to current organization
+    const organizationId = await getCurrentOrganizationId();
+
+    if (!organizationId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const customer = await db.query.customers.findFirst({
-      where: eq(customers.id, customerId),
+      where: and(
+        eq(customers.id, customerId),
+        eq(customers.organizationId, organizationId)
+      ),
     });
 
     if (!customer) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Customer not found or does not belong to your organization' }, { status: 404 });
     }
 
     // Validate contact information

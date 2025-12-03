@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Building2, Users, CreditCard, Check, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info } from 'lucide-react';
 import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
+import { createTeamConnectAccount, getConnectOnboardingLink } from './connect-actions';
 
 type Plan = 'free' | 'starter' | 'pro' | 'business';
 type BillingInterval = 'monthly' | 'yearly';
@@ -24,7 +26,8 @@ const PLANS = [
       '3 véhicules maximum',
       '10 réservations/mois',
       'Paiements Stripe Connect',
-      'Frais: 4,9% + 0,50€',
+      'Frais: 5%',
+      'Contrats PDF',
       'Support communauté',
     ],
   },
@@ -38,7 +41,8 @@ const PLANS = [
       '10 véhicules maximum',
       'Réservations illimitées',
       'Acomptes configurables',
-      'Contrats PDF + Signature électronique',
+      'Signature électronique (très prochainement)',
+      'Frais: 2%',
       'Support email',
     ],
   },
@@ -54,6 +58,7 @@ const PLANS = [
       'Pré-autorisation caution',
       'Vérification identité (prochainement)',
       'Notifications SMS',
+      'Frais: 1% (max 15€)',
       'Support prioritaire',
     ],
     popular: true,
@@ -68,8 +73,9 @@ const PLANS = [
       '100 véhicules maximum',
       'Tout Pro +',
       'Multi-agences',
-      'API accès',
-      'Tableau de bord avancé',
+      // 'API accès',
+      // 'Tableau de bord avancé',
+      'Frais: 0.5% (max 5€)',
       'Support dédié',
     ],
   },
@@ -89,7 +95,7 @@ export default function OnboardingPage() {
   const [teamAddress, setTeamAddress] = useState('');
   const [teamId, setTeamId] = useState('');
 
-  const [selectedPlan, setSelectedPlan] = useState<Plan>('pro');
+  const [selectedPlan, setSelectedPlan] = useState<Plan>('free');
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   // Check if user already has a team
@@ -97,10 +103,35 @@ export default function OnboardingPage() {
     checkForExistingTeam();
   }, []);
 
+  // Sync state with existing team and restore progress
+  useEffect(() => {
+    if (existingTeamStatus) {
+      setOrganizationId(existingTeamStatus.organizationId);
+      setTeamId(existingTeamStatus.id);
+      setOrganizationName(existingTeamStatus.organization?.name || '');
+      setTeamName(existingTeamStatus.name || '');
+      setTeamAddress(existingTeamStatus.address || '');
+      
+      // Pre-select the plan they chose
+      if (['free', 'starter', 'pro', 'business'].includes(existingTeamStatus.plan)) {
+        setSelectedPlan(existingTeamStatus.plan as Plan);
+      }
+      
+      // If payment is needed (not free and no active subscription), go to step 3
+      const isFree = existingTeamStatus.plan === 'free';
+      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
+      
+      if (needsPayment) {
+        setStep(3);
+      }
+    }
+  }, [existingTeamStatus]);
+
   // Redirect to dashboard if everything is set up
   useEffect(() => {
     if (existingTeamStatus && !loading) {
-      const needsPayment = !existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active';
+      const isFree = existingTeamStatus.plan === 'free';
+      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
       const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
       if (!needsPayment && !needsConnect) {
@@ -178,9 +209,26 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      // If FREE plan, skip Stripe checkout and redirect to dashboard
+      // If FREE plan, create Connect account and redirect to onboarding
       if (selectedPlan === 'free') {
-        router.push('/dashboard');
+        // Create Connect account
+        const connectResult = await createTeamConnectAccount({
+          teamId,
+        });
+
+        if (connectResult.error) {
+          throw new Error(connectResult.error);
+        }
+
+        // Get onboarding link
+        const linkResult = await getConnectOnboardingLink(teamId);
+
+        if (linkResult.error || !linkResult.url) {
+          throw new Error(linkResult.error || 'Failed to get onboarding link');
+        }
+
+        // Redirect to Connect onboarding
+        window.location.href = linkResult.url;
         return;
       }
 
@@ -221,50 +269,44 @@ export default function OnboardingPage() {
     );
   }
 
-  // Show existing team status if found
+  // Show existing team status if found AND payment is complete
+  // If payment is needed, fall through to show the stepper
   if (existingTeamStatus) {
-    // FREE plan doesn't need payment
     const isFree = existingTeamStatus.plan === 'free';
     const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
     const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Finalisation de votre compte</CardTitle>
-              <CardDescription>
-                Votre équipe existe déjà. Complétez les étapes restantes pour accéder au tableau de bord.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <div>
-                    <p className="font-medium text-green-900">Organisation créée</p>
-                    <p className="text-sm text-green-700">{existingTeamStatus.organization?.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <div>
-                    <p className="font-medium text-green-900">Agence créée</p>
-                    <p className="text-sm text-green-700">{existingTeamStatus.name}</p>
-                  </div>
-                </div>
-
-                {needsPayment ? (
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-yellow-900">Paiement requis</p>
-                      <p className="text-sm text-yellow-700">Votre abonnement n'est pas encore activé</p>
+    // Only show summary card if payment is complete (or free plan)
+    // Otherwise, fall through to show the stepper
+    if (!needsPayment) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Finalisation de votre compte</CardTitle>
+                <CardDescription>
+                  Votre équipe existe déjà. Complétez les étapes restantes pour accéder au tableau de bord.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Organisation créée</p>
+                      <p className="text-sm text-green-700">{existingTeamStatus.organization?.name}</p>
                     </div>
                   </div>
-                ) : (
+
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-900">Agence créée</p>
+                      <p className="text-sm text-green-700">{existingTeamStatus.name}</p>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                     <Check className="w-5 h-5 text-green-600" />
                     <div>
@@ -272,73 +314,41 @@ export default function OnboardingPage() {
                       <p className="text-sm text-green-700">Plan {existingTeamStatus.plan}</p>
                     </div>
                   </div>
-                )}
 
-                {needsConnect && !needsPayment && (
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
-                      <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
+                  {needsConnect && (
+                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
+                        <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-3">
-                {needsPayment && (
-                  <Button
-                    onClick={async () => {
-                      setLoading(true);
-                      setError('');
-                      try {
-                        const result = await createStripeCheckoutSession({
-                          organizationId: existingTeamStatus.organizationId,
-                          teamId: existingTeamStatus.id,
-                          plan: existingTeamStatus.plan,
-                          billingInterval: 'monthly',
-                        });
-
-                        if (result.error) {
-                          throw new Error(result.error);
-                        }
-
-                        if (result.url) {
-                          window.location.href = result.url;
-                        }
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Erreur lors de la création de la session de paiement');
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                    className="w-full"
-                  >
-                    {loading ? 'Redirection...' : 'Procéder au paiement'}
-                  </Button>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
 
-                {!needsPayment && needsConnect && (
-                  <Button
-                    onClick={() => router.push('/onboarding/connect-refresh')}
-                    className="w-full"
-                  >
-                    Configurer les paiements
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                <div className="space-y-3">
+                  {needsConnect && (
+                    <Button
+                      onClick={() => router.push('/onboarding/connect-refresh')}
+                      className="w-full"
+                    >
+                      Configurer les paiements
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
@@ -581,12 +591,47 @@ export default function OnboardingPage() {
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2">
-                        {plan.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm">
-                            <span className="text-green-500">✓</span>
-                            <span>{feature}</span>
-                          </li>
-                        ))}
+                        {plan.features.map((feature, idx) => {
+                          const isFeeFeature = feature.startsWith('Frais:');
+                          const feeInfo = {
+                            free: { percentage: 5, min: 1 },
+                            starter: { percentage: 2, min: 1 },
+                            pro: { percentage: 1, min: 1, max: 15 },
+                            business: { percentage: 0.5, min: 0.5, max: 5 },
+                          }[plan.id];
+
+                          return (
+                            <li key={idx} className="flex items-start gap-2 text-sm">
+                              <span className="text-green-500">✓</span>
+                              {isFeeFeature && feeInfo ? (
+                                <div className="flex items-center gap-1">
+                                  <span>{feature}</span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        <p className="text-xs font-semibold mb-1">
+                                          Comment sont calculés les frais ?
+                                        </p>
+                                        <p className="text-xs">
+                                          {feeInfo.percentage}% du montant de la transaction, avec un minimum de {feeInfo.min}€
+                                          {feeInfo.max ? ` et un plafond de ${feeInfo.max}€` : ''}.
+                                        </p>
+                                        <p className="text-xs mt-1 text-muted-foreground">
+                                          Ex: location 100€ → frais {Math.max(100 * feeInfo.percentage / 100, feeInfo.min)}€
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              ) : (
+                                <span>{feature}</span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </CardContent>
                   </Card>
@@ -655,11 +700,7 @@ export default function OnboardingPage() {
                 )}
               </div>
 
-              <div className="space-y-2 text-sm text-gray-600">
-                <p>✓ Annulez à tout moment</p>
-                <p>✓ 14 jours d'essai gratuit</p>
-                <p>✓ Aucun engagement</p>
-              </div>
+             
 
               <div className="flex gap-2">
                 <Button

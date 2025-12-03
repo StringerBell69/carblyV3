@@ -58,7 +58,7 @@ export function ChartAreaInteractive({ data }: ChartAreaInteractiveProps) {
     const monthName = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
     return {
       month: monthName,
-      revenue: item.revenue / 100, // Convert cents to euros
+      revenue: item.revenue, // Amount is already in euros (decimal format in DB)
       date: item.month,
     }
   })

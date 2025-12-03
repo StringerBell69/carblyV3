@@ -24,14 +24,17 @@ export default async function DashboardLayout({
 
   // Check if team has completed onboarding
   // User might have created team but not completed payment or Stripe Connect setup
-  const needsOnboarding =
-    !team.stripeSubscriptionId ||
-    team.subscriptionStatus !== 'active' ||
-    !team.stripeConnectOnboarded;
+  const isFree = team.plan === 'free';
+  
+  const needsOnboarding = isFree
+    ? !team.stripeConnectOnboarded // Free plan only needs Connect onboarding
+    : (!team.stripeSubscriptionId ||
+       team.subscriptionStatus !== 'active' ||
+       !team.stripeConnectOnboarded);
 
   if (needsOnboarding) {
     // Redirect to appropriate page based on onboarding status
-    if (!team.stripeSubscriptionId || team.subscriptionStatus !== 'active') {
+    if (!isFree && (!team.stripeSubscriptionId || team.subscriptionStatus !== 'active')) {
       // Payment not completed - redirect to onboarding page that will show current status
       redirect('/onboarding');
     } else if (!team.stripeConnectOnboarded) {

@@ -3,10 +3,11 @@ import { getPlanUsage } from '@/lib/plan-limits'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
-    const usage = await getPlanUsage(params.teamId)
+    const { teamId } = await params;
+    const usage = await getPlanUsage(teamId)
     return NextResponse.json(usage)
   } catch (error) {
     console.error('Failed to fetch plan usage:', error)

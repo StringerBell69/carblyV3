@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
-import { teams } from '@/drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { teams, vehicles } from '@/drizzle/schema';
+import { eq, count } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { getCurrentTeamId } from '@/lib/session';
 import {
@@ -21,6 +22,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -48,7 +50,16 @@ export default async function SettingsPage() {
     return <div>Team not found</div>;
   }
 
+  // Count vehicles for this team
+  const vehicleCountResult = await db
+    .select({ count: count() })
+    .from(vehicles)
+    .where(eq(vehicles.teamId, teamId));
+
+  const vehicleCount = vehicleCountResult[0]?.count || 0;
+
   const planLabels = {
+    free: 'Gratuit - 0€/mois',
     starter: 'Starter - 49€/mois',
     pro: 'Pro - 99€/mois',
     business: 'Business - 199€/mois',
@@ -214,7 +225,7 @@ export default async function SettingsPage() {
                     <span className="font-medium">Véhicules</span>
                   </div>
                   <p className="text-base font-medium pl-6">
-                    0 / {team.maxVehicles} utilisés
+                    {vehicleCount} / {team.maxVehicles} utilisés
                   </p>
                 </div>
                 <Separator />
@@ -224,6 +235,22 @@ export default async function SettingsPage() {
                     <span className="font-medium">Statut</span>
                   </div>
                   <div className="pl-6">{getStatusBadge()}</div>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Changer de plan</p>
+                    <p className="text-sm text-muted-foreground">
+                      Passez à un plan supérieur ou inférieur selon vos besoins
+                    </p>
+                  </div>
+                  <Link href="/settings/change-plan">
+                    <Button variant="outline">Changer de plan</Button>
+                  </Link>
                 </div>
               </div>
 

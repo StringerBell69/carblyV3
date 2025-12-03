@@ -16,7 +16,8 @@ import {
   Car,
   Calendar,
 } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatTime } from '@/lib/utils';
+import { PhoneInput } from '@/components/phone-input';
 
 export default function CustomerInfoPage() {
   const params = useParams();
@@ -154,7 +155,10 @@ export default function CustomerInfoPage() {
                   <div>
                     <p className="text-sm text-blue-600 font-medium">Période</p>
                     <p className="text-gray-900">
-                      Du {formatDate(reservation.startDate)} au {formatDate(reservation.endDate)}
+                      Du {formatDate(reservation.startDate)} à {formatTime(reservation.startDate)}
+                    </p>
+                    <p className="text-gray-900">
+                      au {formatDate(reservation.endDate)} à {formatTime(reservation.endDate)}
                     </p>
                   </div>
                 </div>
@@ -233,17 +237,15 @@ export default function CustomerInfoPage() {
               <div className="space-y-2">
                 <Label htmlFor="phone">Téléphone</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    className="pl-10"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    disabled={submitting}
-                  />
+                  
+                   <PhoneInput
+                                        international
+                                        addInternationalOption
+                                        value={formData.phone} // ex: "+33767338363"
+                                        onChange={(value) =>
+                                          setFormData({ ...formData, phone: value })
+                                        }
+                                      />
                 </div>
               </div>
 

@@ -30,7 +30,7 @@ export async function sendReservationPaymentEmail({
 }) {
   try {
     await resend.emails.send({
-      from: 'Carbly <noreply@carbly.com>',
+      from: 'Carbly <carbly@sumbo.fr>',
       to,
       subject: `Votre réservation ${vehicle.brand} ${vehicle.model}`,
       html: `
@@ -77,7 +77,7 @@ export async function sendPaymentConfirmedEmail({
 }) {
   try {
     await resend.emails.send({
-      from: 'Carbly <noreply@carbly.com>',
+      from: 'Carbly <carbly@sumbo.fr>',
       to,
       subject: '✅ Paiement confirmé - Signez votre contrat de location',
       html: `
@@ -152,7 +152,7 @@ export async function sendContractSignedEmail({
 }) {
   try {
     await resend.emails.send({
-      from: 'Carbly <noreply@carbly.com>',
+      from: 'Carbly <carbly@sumbo.fr>',
       to,
       subject: '🎉 Contrat signé - Votre location est confirmée !',
       html: `
@@ -229,7 +229,7 @@ export async function sendReturnReminderEmail({
 }) {
   try {
     await resend.emails.send({
-      from: 'Carbly <noreply@carbly.com>',
+      from: 'Carbly <carbly@sumbo.fr>',
       to,
       subject: 'Rappel : Restitution demain',
       html: `
@@ -288,7 +288,7 @@ export async function sendBalancePaymentEmail({
 }) {
   try {
     await resend.emails.send({
-      from: 'Carbly <noreply@carbly.com>',
+      from: 'Carbly <carbly@sumbo.fr>',
       to,
       subject: `💳 Paiement du solde - ${vehicle.brand} ${vehicle.model}`,
       html: `
@@ -356,6 +356,91 @@ export async function sendBalancePaymentEmail({
     });
   } catch (error) {
     console.error('Failed to send balance payment email:', error);
+    throw error;
+  }
+}
+
+export async function sendCancellationEmail({
+  to,
+  customerName,
+  vehicle,
+  dates,
+  refundAmount,
+  reason,
+}: {
+  to: string;
+  customerName: string;
+  vehicle: {
+    brand: string;
+    model: string;
+  };
+  dates: {
+    start: string;
+    end: string;
+  };
+  refundAmount: number; // Amount in euros
+  reason?: string;
+}) {
+  try {
+    const refundText =
+      refundAmount === 0
+        ? 'Aucun remboursement ne sera effectué selon notre politique d\'annulation.'
+        : `Vous serez remboursé de ${refundAmount.toFixed(2)}€ dans les prochains jours.`;
+
+    await resend.emails.send({
+      from: 'Carbly <carbly@sumbo.fr>',
+      to,
+      subject: `❌ Annulation de votre réservation - ${vehicle.brand} ${vehicle.model}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #EF4444;">❌ Réservation annulée</h1>
+          <p>Bonjour ${customerName},</p>
+          <p>Nous vous confirmons l'annulation de votre réservation.</p>
+
+          <div style="background: #FEE2E2; border-left: 4px solid #EF4444; padding: 20px; margin: 20px 0;">
+            <h2 style="margin-top: 0; color: #991B1B;">📋 Détails de la réservation annulée</h2>
+            <p style="margin: 8px 0;"><strong>Véhicule :</strong> ${vehicle.brand} ${vehicle.model}</p>
+            <p style="margin: 8px 0;"><strong>Date de début :</strong> ${dates.start}</p>
+            <p style="margin: 8px 0;"><strong>Date de fin :</strong> ${dates.end}</p>
+            ${reason ? `<p style="margin: 8px 0;"><strong>Raison :</strong> ${reason}</p>` : ''}
+          </div>
+
+          ${
+            refundAmount > 0
+              ? `
+          <div style="background: #DBEAFE; border-left: 4px solid #3B82F6; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; color: #1E40AF;"><strong>💰 Remboursement</strong></p>
+            <p style="margin: 8px 0 0 0; color: #1E40AF;">${refundText}</p>
+            <p style="margin: 8px 0 0 0; color: #1E40AF; font-size: 14px;">Le remboursement sera effectué sur le même moyen de paiement utilisé lors de la réservation. Délai : 5 à 10 jours ouvrés selon votre banque.</p>
+          </div>
+          `
+              : `
+          <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>💰 Remboursement</strong></p>
+            <p style="margin: 8px 0 0 0; color: #92400E;">${refundText}</p>
+          </div>
+          `
+          }
+
+          <p style="color: #6B7280;">
+            Si vous avez des questions concernant cette annulation, n'hésitez pas à nous contacter en répondant à cet email.
+          </p>
+
+          <p style="color: #6B7280;">
+            Nous espérons avoir le plaisir de vous servir à nouveau prochainement.
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;" />
+
+          <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
+            Cordialement,<br/>
+            L'équipe Carbly
+          </p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error('Failed to send cancellation email:', error);
     throw error;
   }
 }
