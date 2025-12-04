@@ -352,10 +352,10 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Visual Stepper */}
-        <div className="mb-12">
+        <div className="mb-6 sm:mb-12">
           <div className="flex items-center justify-between mb-8">
             {[
               { num: 1, label: 'Organisation', icon: Building2 },
@@ -371,7 +371,7 @@ export default function OnboardingPage() {
                 <div key={s.num} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
                         isActive
                           ? 'bg-primary text-white shadow-lg scale-110'
                           : isCompleted
@@ -380,9 +380,9 @@ export default function OnboardingPage() {
                       }`}
                     >
                       {isCompleted ? (
-                        <Check className="w-5 h-5" />
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <StepIcon className="w-5 h-5" />
+                        <StepIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </div>
                     <span
@@ -548,7 +548,7 @@ export default function OnboardingPage() {
               </Button>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-3 gap-3 sm:gap-4">
               {PLANS.map((plan) => {
                 const price = billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
                 const savings = billingInterval === 'yearly' ? (plan.monthlyPrice * 12 - plan.yearlyPrice) : 0;
