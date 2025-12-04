@@ -571,9 +571,16 @@ export async function sendContractForSignature(reservationId: string) {
       return { error: yousignResult.error };
     }
 
-    if (!yousignResult.signatureRequestId || !yousignResult.signatureLink) {
-      return { error: 'Failed to create signature request' };
+    if (!yousignResult.signatureRequestId) {
+      console.error('[sendContractForSignature] Missing signatureRequestId');
+      return { error: 'Failed to create signature request - no ID returned' };
     }
+
+    // Note: signatureLink might be undefined but that's OK since Yousign sends the email directly
+    console.log('[sendContractForSignature] Signature request created:', {
+      signatureRequestId: yousignResult.signatureRequestId,
+      hasSignatureLink: !!yousignResult.signatureLink,
+    });
 
     // Update contract with Yousign signature request ID
     const { contracts } = await import('@/drizzle/schema');
@@ -585,17 +592,23 @@ export async function sendContractForSignature(reservationId: string) {
       })
       .where(eq(contracts.reservationId, reservationId));
 
-    // Send confirmation email with Yousign signature link
-    const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
-    await sendPaymentConfirmedEmail({
-      to: fullReservation.customer.email,
-      customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
-      vehicle: {
-        brand: fullReservation.vehicle.brand,
-        model: fullReservation.vehicle.model,
-      },
-      yousignLink: yousignResult.signatureLink,
-    });
+    // Send confirmation email with Yousign signature link (only if we have the link)
+    // Otherwise, Yousign will send the email directly
+    if (yousignResult.signatureLink) {
+      const { sendPaymentConfirmedEmail } = await import('@/lib/resend');
+      await sendPaymentConfirmedEmail({
+        to: fullReservation.customer.email,
+        customerName: `${fullReservation.customer.firstName} ${fullReservation.customer.lastName}`,
+        vehicle: {
+          brand: fullReservation.vehicle.brand,
+          model: fullReservation.vehicle.model,
+        },
+        yousignLink: yousignResult.signatureLink,
+      });
+      console.log('[sendContractForSignature] Confirmation email sent with signature link');
+    } else {
+      console.log('[sendContractForSignature] Yousign will send the email directly');
+    }
 
     revalidatePath(`/reservations/${reservationId}`);
 

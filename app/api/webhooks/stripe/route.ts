@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
         console.log('[Stripe Webhook] Metadata:', JSON.stringify(metadata));
         console.log('[Stripe Webhook] Payment Intent:', session.payment_intent);
 
-        // Handle subscription payment (onboarding)
-        if (metadata?.teamId && session.subscription) {
+        // Handle subscription payment (onboarding or plan change)
+        if (metadata?.teamId && (session.subscription || (metadata as any).plan)) {
           const plan = (metadata as any).plan as 'free' | 'starter' | 'pro' | 'business';
 
           // Determine max vehicles based on plan
@@ -70,17 +70,23 @@ export async function POST(req: NextRequest) {
             plan === 'pro' ? 25 :
             100; // business
 
+          const updateData: any = {
+            plan: plan,
+            maxVehicles: maxVehicles,
+          };
+
+          // Only update subscription fields if subscription exists
+          if (session.subscription) {
+            updateData.stripeSubscriptionId = session.subscription as string;
+            updateData.subscriptionStatus = 'active';
+          }
+
           await db
             .update(teams)
-            .set({
-              stripeSubscriptionId: session.subscription as string,
-              subscriptionStatus: 'active',
-              plan: plan,
-              maxVehicles: maxVehicles,
-            })
+            .set(updateData)
             .where(eq(teams.id, metadata.teamId));
 
-          console.log('[Stripe Webhook] Subscription activated for team:', metadata.teamId, 'with plan:', plan, 'maxVehicles:', maxVehicles);
+          console.log('[Stripe Webhook] Plan updated for team:', metadata.teamId, 'with plan:', plan, 'maxVehicles:', maxVehicles);
         }
 
         // Handle balance payment (solde)
