@@ -26,6 +26,7 @@ import { PaymentLinkCard } from './components/payment-link-card';
 import { ContractSection } from './components/contract-section';
 import { BalancePaymentCard } from './components/balance-payment-card';
 import { CancelReservationButton } from './components/cancel-reservation-button';
+import { PaymentStatusCard } from './components/payment-status-card';
 import { calculatePlatformFees, type PlanType } from '@/lib/pricing-config';
 import { isYousignEnabled } from '@/lib/feature-flags';
 
@@ -95,14 +96,14 @@ export default async function ReservationDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Retour aux réservations
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Détails de la réservation</h1>
             <p className="text-gray-600 mt-1">
               Réservation #{reservation.id.slice(0, 8)}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge
               variant={statusConfig[reservation.status].variant}
               className="text-base px-4 py-2"
@@ -292,13 +293,16 @@ export default async function ReservationDetailPage({
           )}
 
           {magicLink && reservation.status === "pending_payment" && (
-            <PaymentLinkCard
-              magicLink={magicLink}
-              reservationId={reservation.id}
-              customerEmail={reservation.customer?.email}
-              customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
-              hasCustomer={!!reservation.customer}
-            />
+            <>
+              <PaymentLinkCard
+                magicLink={magicLink}
+                reservationId={reservation.id}
+                customerEmail={reservation.customer?.email}
+                customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
+                hasCustomer={!!reservation.customer}
+              />
+              <PaymentStatusCard reservationId={reservation.id} />
+            </>
           )}
 
           <ContractSection

@@ -99,8 +99,8 @@ export function CancelReservationButton({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive" size="sm">
-          <XCircle className="w-4 h-4 mr-2" />
-          Annuler la réservation
+          <XCircle className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Annuler la réservation</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

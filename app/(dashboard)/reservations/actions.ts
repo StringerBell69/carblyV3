@@ -972,3 +972,142 @@ export async function markBalanceAsPaidCash(reservationId: string) {
     return { error: 'Failed to mark balance as paid' };
   }
 }
+
+export async function checkPaymentStatus(reservationId: string) {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Get full reservation data
+    const fullReservation = await db.query.reservations.findFirst({
+      where: and(
+        eq(reservations.id, reservationId),
+        eq(reservations.teamId, teamId)
+      ),
+      with: {
+        customer: true,
+        vehicle: true,
+        payments: true,
+      },
+    });
+
+    if (!fullReservation) {
+      return { error: 'Reservation not found' };
+    }
+
+    // If already paid, return success
+    if (fullReservation.status === 'paid' || fullReservation.status === 'confirmed') {
+      return {
+        status: 'paid',
+        message: 'Paiement déjà confirmé',
+      };
+    }
+
+    // If not pending payment, nothing to check
+    if (fullReservation.status !== 'pending_payment') {
+      return {
+        status: fullReservation.status,
+        message: `Statut actuel: ${fullReservation.status}`,
+      };
+    }
+
+    // Check if there's a Stripe payment intent to verify
+    // Look for the most recent payment attempt
+    const { stripe } = await import('@/lib/stripe');
+    
+    // Try to find payment intent from session
+    // We need to check if there's a checkout session for this reservation
+    // The magic link token can help us identify sessions
+    if (!fullReservation.magicLinkToken) {
+      return {
+        status: 'pending_payment',
+        message: 'Aucun paiement en cours trouvé',
+      };
+    }
+
+    // Search for checkout sessions with this reservation ID in metadata
+    const sessions = await stripe.checkout.sessions.list({
+      limit: 10,
+    });
+
+    // Find session for this reservation
+    const session = sessions.data.find(
+      (s) => s.metadata?.reservationId === reservationId
+    );
+
+    if (!session) {
+      return {
+        status: 'pending_payment',
+        message: 'Aucune session de paiement trouvée',
+      };
+    }
+
+    // Check session status
+    if (session.payment_status === 'paid' && session.status === 'complete') {
+      // Payment succeeded! Update the database
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+      // Update reservation status
+      await db
+        .update(reservations)
+        .set({
+          status: 'paid',
+          stripePaymentIntentId: paymentIntentId || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(reservations.id, reservationId));
+
+      // Create payment record if it doesn't exist
+      const existingPayment = fullReservation.payments.find(
+        (p) => p.stripePaymentIntentId === paymentIntentId
+      );
+
+      if (!existingPayment) {
+        const paymentType = session.metadata?.paymentType as 'deposit' | 'total' || 'total';
+        const amountPaidTotal = session.amount_total ? session.amount_total / 100 : 0;
+        const platformFee = session.metadata?.platformFeeTotal 
+          ? parseFloat(session.metadata.platformFeeTotal)
+          : 0.99;
+        const amountPaidByCustomer = amountPaidTotal - platformFee;
+
+        await db.insert(payments).values({
+          reservationId: reservationId,
+          amount: amountPaidByCustomer.toString(),
+          fee: platformFee.toString(),
+          type: paymentType,
+          stripePaymentIntentId: paymentIntentId || null,
+          status: 'succeeded',
+          paidAt: new Date(),
+        });
+      }
+
+      console.log('[checkPaymentStatus] Payment confirmed for reservation:', reservationId);
+
+      revalidatePath(`/reservations/${reservationId}`);
+
+      return {
+        status: 'paid',
+        message: 'Paiement confirmé avec succès !',
+      };
+    } else if (session.payment_status === 'unpaid') {
+      return {
+        status: 'pending_payment',
+        message: 'En attente du paiement du client',
+      };
+    } else {
+      return {
+        status: session.payment_status,
+        message: `Statut du paiement: ${session.payment_status}`,
+      };
+    }
+  } catch (error) {
+    console.error('[checkPaymentStatus]', error);
+    return { error: 'Erreur lors de la vérification du statut de paiement' };
+  }
+}
+
