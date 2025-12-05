@@ -318,24 +318,46 @@ export const ContractPDF: React.FC<ContractPDFProps> = ({
 
         {/* Conditions */}
         <View style={styles.terms}>
-          <Text style={styles.termsTitle}>Article 4 - Conditions générales</Text>
+          <Text style={styles.termsTitle}>CONDITIONS GÉNÉRALES DE LOCATION</Text>
+          
           <Text style={styles.termItem}>
-            4.1. Le locataire s'engage à restituer le véhicule dans l'état où il lui a été remis.
+            <Text style={{ fontWeight: 'bold' }}>Article 4 - État du véhicule : </Text>
+            Le véhicule est remis au Locataire en bon état de marche, de propreté et de carrosserie. Un état des lieux contradictoire est effectué au départ et au retour. Le Locataire reconnaît avoir reçu le véhicule exempt de dommages, sauf ceux mentionnés sur l'état des lieux de départ. Tout dommage, rayure ou choc constaté au retour et non signalé au départ sera intégralement à la charge du Locataire.
           </Text>
+
           <Text style={styles.termItem}>
-            4.2. Le locataire est responsable du véhicule pendant toute la durée de la location.
+            <Text style={{ fontWeight: 'bold' }}>Article 5 - Usage du véhicule : </Text>
+            Le Locataire s'engage à utiliser le véhicule en "bon père de famille". Il est formellement interdit : de sous-louer le véhicule, de transporter des passagers à titre onéreux, d'utiliser le véhicule pour l'apprentissage de la conduite, de participer à des compétitions sportives ou rallyes, de transporter des marchandises dangereuses ou illicites, de conduire sous l'emprise de l'alcool ou de stupéfiants. Le véhicule ne doit pas quitter le territoire autorisé sans l'accord écrit du Loueur.
           </Text>
+
           <Text style={styles.termItem}>
-            4.3. Le véhicule doit être restitué avec le même niveau de carburant.
+            <Text style={{ fontWeight: 'bold' }}>Article 6 - Assurances et Responsabilités : </Text>
+            Le contrat inclut une assurance responsabilité civile aux tiers. En cas de vol, d'incendie ou de dommages au véhicule (responsable ou sans tiers identifié), la responsabilité du Locataire est limitée au montant de la franchise (caution), sauf en cas de négligence grave, d'ivresse ou de violation des conditions d'utilisation (Article 5) où la déchéance de garantie s'applique. Ne sont pas couverts par l'assurance (et restent à la charge totale du Locataire) : les dommages aux pneumatiques, jantes, bris de glace, erreurs de carburant, perte de clés, et les dommages intérieurs (tâches, déchirures, brûlures).
           </Text>
+
           <Text style={styles.termItem}>
-            4.4. Toute prolongation doit être autorisée par le loueur.
+            <Text style={{ fontWeight: 'bold' }}>Article 7 - Carburant et Kilométrage : </Text>
+            Le carburant est à la charge du Locataire. Le véhicule doit être restitué avec le même niveau de carburant qu'au départ. À défaut, le complément sera facturé au tarif en vigueur majoré de frais de service de 20€. Le kilométrage inclus est défini dans les conditions particulières. Tout dépassement kilométrique sera facturé au tarif de 0,50€ par kilomètre supplémentaire.
           </Text>
+
           <Text style={styles.termItem}>
-            4.5. Le locataire s'engage à respecter le code de la route.
+            <Text style={{ fontWeight: 'bold' }}>Article 8 - Entretien et Pannes : </Text>
+            Le Locataire doit vérifier régulièrement les niveaux (huile, eau) et la pression des pneus. En cas de panne mécanique non due à une négligence du Locataire, le Loueur prend en charge les réparations. Aucune réparation ne peut être effectuée sans l'accord préalable du Loueur. En cas d'accident, le Locataire doit prévenir le Loueur immédiatement et transmettre le constat amiable dûment rempli sous 24 heures.
           </Text>
+
           <Text style={styles.termItem}>
-            4.6. La caution sera débloquée dans les 7 jours suivant la restitution sans dommage.
+            <Text style={{ fontWeight: 'bold' }}>Article 9 - Restitution et Pénalités : </Text>
+            La location se termine par la restitution du véhicule, de ses clés et des papiers au Loueur, à l'heure et au lieu convenus. Tout retard de plus de 59 minutes entraînera la facturation automatique d'une journée de location supplémentaire. Le véhicule doit être rendu dans un état de propreté correct (intérieur et extérieur). Si un nettoyage approfondi est nécessaire, un forfait de nettoyage de 50€ à 150€ sera facturé.
+          </Text>
+
+          <Text style={styles.termItem}>
+            <Text style={{ fontWeight: 'bold' }}>Article 10 - Amendes et Contraventions : </Text>
+            Le Locataire est seul responsable des amendes, contraventions et procès-verbaux établis à son encontre pendant la période de location. En cas de réception d'une contravention par le Loueur, celle-ci sera désignée aux autorités compétentes et des frais de traitement administratif de 30€ seront facturés au Locataire.
+          </Text>
+
+          <Text style={styles.termItem}>
+            <Text style={{ fontWeight: 'bold' }}>Article 11 - Juridiction : </Text>
+            Le présent contrat est régi par la loi française. En cas de litige relatif à l'exécution du présent contrat, et à défaut d'accord amiable, les tribunaux du siège social du Loueur seront seuls compétents.
           </Text>
         </View>
 

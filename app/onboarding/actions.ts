@@ -169,6 +169,7 @@ export async function createStripeCheckoutSession(data: {
       },
       success_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/onboarding?step=payment`,
+      allow_promotion_codes: true,
     });
 
     return { url: checkoutSession.url };
