@@ -17,6 +17,14 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // For MVP, can enable later
+    sendResetPassword: async ({ user, url, token }) => {
+      const { sendResetPasswordEmail } = await import('./resend');
+      await sendResetPasswordEmail({
+        to: user.email,
+        url,
+        token,
+      });
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
@@ -27,8 +35,10 @@ export const auth = betterAuth({
     },
   },
   advanced: {
-    generateId: () => {
-      return crypto.randomUUID();
+    database: {
+      generateId: () => {
+        return crypto.randomUUID();
+      },
     },
   },
 });

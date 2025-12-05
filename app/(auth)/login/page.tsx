@@ -54,8 +54,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 -z-10">
+      {/* Animated Background Elements - Hidden on mobile for better performance */}
+      <div className="absolute inset-0 -z-10 hidden md:block">
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float"></div>
         <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
       </div>
@@ -98,7 +98,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-12 px-4 rounded-xl border-2 focus:border-primary transition-colors"
+                  className="h-12 px-4 rounded-xl border-2 focus:border-primary"
                 />
               </div>
 
@@ -113,7 +113,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12 px-4 rounded-xl border-2 focus:border-primary transition-colors"
+                  className="h-12 px-4 rounded-xl border-2 focus:border-primary"
                 />
               </div>
 

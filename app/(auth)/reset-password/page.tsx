@@ -53,6 +53,7 @@ function ResetPasswordContent() {
     try {
       await authClient.resetPassword({
         newPassword: password,
+        token: token,
       });
 
       setSuccess(true);

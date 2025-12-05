@@ -26,19 +26,6 @@ export default function ReservationSuccessPage() {
           // If status is paid, wait a moment to show success then redirect
           if (data.reservation.status === 'paid') {
             setChecking(false);
-
-            // Start countdown
-            const countdownInterval = setInterval(() => {
-              setCountdown((prev) => {
-                if (prev <= 1) {
-                  clearInterval(countdownInterval);
-                  router.push(`/reservation/${token}`);
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-
             return;
           }
         }
@@ -51,9 +38,6 @@ export default function ReservationSuccessPage() {
         } else {
           // After max attempts, redirect anyway
           setChecking(false);
-          setTimeout(() => {
-            router.push(`/reservation/${token}`);
-          }, 2000);
         }
       } catch (error) {
         console.error('Error polling reservation:', error);
@@ -63,15 +47,37 @@ export default function ReservationSuccessPage() {
           setTimeout(pollReservationStatus, 1000);
         } else {
           setChecking(false);
-          setTimeout(() => {
-            router.push(`/reservation/${token}`);
-          }, 2000);
         }
       }
     };
 
     pollReservationStatus();
-  }, [token, router]);
+  }, [token]);
+
+  // Separate useEffect for countdown and redirect
+  useEffect(() => {
+    if (!checking) {
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Redirect after countdown
+      const redirectTimer = setTimeout(() => {
+        router.push(`/reservation/${token}`);
+      }, 3000);
+
+      return () => {
+        clearInterval(countdownInterval);
+        clearTimeout(redirectTimer);
+      };
+    }
+  }, [checking, token, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">

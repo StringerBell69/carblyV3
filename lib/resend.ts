@@ -478,3 +478,55 @@ export async function sendReservationPaymentLink({
     magicLink,
   });
 }
+
+export async function sendResetPasswordEmail({
+  to,
+  url,
+  token,
+}: {
+  to: string;
+  url: string;
+  token: string;
+}) {
+  try {
+    await resend.emails.send({
+      from: 'Carbly <carbly@sumbo.fr>',
+      to,
+      subject: '🔑 Réinitialisation de votre mot de passe',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #3B82F6;">🔑 Réinitialisation de mot de passe</h1>
+          <p>Bonjour,</p>
+          <p>Vous avez demandé à réinitialiser votre mot de passe Carbly.</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${url}" style="display: inline-block; background: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              🔐 Réinitialiser mon mot de passe
+            </a>
+          </div>
+
+          <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px; margin: 24px 0;">
+            <p style="margin: 0; color: #92400E;"><strong>⚠️ Sécurité</strong></p>
+            <p style="margin: 8px 0 0 0; color: #92400E; font-size: 14px;">
+              Ce lien est valable pendant 1 heure. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+            </p>
+          </div>
+
+          <p style="color: #6B7280; font-size: 14px;">
+            Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br/>
+            <a href="${url}" style="color: #3B82F6; word-break: break-all;">${url}</a>
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 30px 0;" />
+
+          <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
+            L'équipe Carbly
+          </p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error('Failed to send reset password email:', error);
+    throw error;
+  }
+}

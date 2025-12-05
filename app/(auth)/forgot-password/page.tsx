@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      await authClient.forgetPassword({
+      await authClient.requestPasswordReset({
         email,
         redirectTo: `${window.location.origin}/reset-password`,
       });
