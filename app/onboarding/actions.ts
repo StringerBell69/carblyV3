@@ -246,3 +246,41 @@ export async function checkExistingTeam() {
     return { error: 'Failed to check existing team' };
   }
 }
+
+export async function updateTeamPlan(data: {
+  teamId: string;
+  plan: 'free' | 'starter' | 'pro' | 'business';
+}) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { error: 'Unauthorized' };
+    }
+
+    // Determine max vehicles based on plan
+    const maxVehicles =
+      data.plan === 'free' ? 3 :
+      data.plan === 'starter' ? 10 :
+      data.plan === 'pro' ? 25 :
+      100; // business
+
+    // Update team plan
+    const [team] = await db
+      .update(teams)
+      .set({
+        plan: data.plan,
+        maxVehicles,
+        subscriptionStatus: data.plan === 'free' ? 'active' : 'incomplete',
+      })
+      .where(eq(teams.id, data.teamId))
+      .returning();
+
+    return { team };
+  } catch (error) {
+    console.error('[updateTeamPlan]', error);
+    return { error: 'Failed to update team plan' };
+  }
+}

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info, LogOut } from 'lucide-react';
-import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
+import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam, updateTeamPlan } from './actions';
 import { createTeamConnectAccount, getConnectOnboardingLink } from './connect-actions';
 import { signOut } from '@/lib/auth-client';
 
@@ -190,18 +190,32 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      const result = await createTeam({
-        organizationId,
-        name: teamName,
-        address: teamAddress,
-        plan: selectedPlan,
-      });
+      // If team already exists (user came back from payment), update the plan
+      if (teamId) {
+        const result = await updateTeamPlan({
+          teamId,
+          plan: selectedPlan,
+        });
 
-      if (result.error) {
-        throw new Error(result.error);
+        if (result.error) {
+          throw new Error(result.error);
+        }
+      } else {
+        // Create new team
+        const result = await createTeam({
+          organizationId,
+          name: teamName,
+          address: teamAddress,
+          plan: selectedPlan,
+        });
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        setTeamId(result.team!.id);
       }
 
-      setTeamId(result.team!.id);
       setStep(3);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create team');
