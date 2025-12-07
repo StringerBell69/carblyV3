@@ -379,7 +379,7 @@ export async function createReservation(data) {
 ```typescript
 const session = await stripe.checkout.sessions.create({
   mode: 'payment',
-  payment_method_types: ['card', 'sepa_debit'],
+  payment_method_types: ['card'],
   line_items: [
     { price_data: { ... }, quantity: 1 }, // Montant résa
     { price_data: { ... }, quantity: 1 }, // Fee 0.99€

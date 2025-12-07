@@ -264,7 +264,7 @@ export async function createReservationCheckoutSession({
     const session = await stripe.checkout.sessions.create(
       {
         mode: 'payment',
-        payment_method_types: ['card', 'sepa_debit'],
+        payment_method_types: ['card'],
         customer_email: customerEmail,
         line_items: lineItems,
         payment_intent_data: {
@@ -441,7 +441,7 @@ export async function createSubscriptionCheckout({
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      payment_method_types: ['card', 'sepa_debit'],
+      payment_method_types: ['card'],
       line_items: [
         {
           price: plan.priceId,
