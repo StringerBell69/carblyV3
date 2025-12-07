@@ -118,24 +118,33 @@ export default function OnboardingPage() {
         setSelectedPlan(existingTeamStatus.plan as Plan);
       }
       
-      // If payment is needed (not free and no active subscription), go to step 3
+      // Determine which step to resume from
       const isFree = existingTeamStatus.plan === 'free';
-      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
+      const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
+      const needsPayment = !isFree && !hasActiveSubscription;
       
+      // Resume at the correct step:
+      // - If paid plan but no subscription: go to step 3 (payment)
+      // - Otherwise stay at step 1 (will redirect to dashboard or connect if needed)
       if (needsPayment) {
         setStep(3);
       }
     }
   }, [existingTeamStatus]);
 
-  // Redirect to dashboard if everything is set up
+  // Redirect to dashboard or connect setup if everything else is complete
   useEffect(() => {
     if (existingTeamStatus && !loading) {
       const isFree = existingTeamStatus.plan === 'free';
-      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
+      const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
+      const needsPayment = !isFree && !hasActiveSubscription;
       const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-      if (!needsPayment && !needsConnect) {
+      // Only redirect if payment is done (or not needed) but Connect is needed
+      if (!needsPayment && needsConnect) {
+        router.push('/onboarding/connect-refresh');
+      } else if (!needsPayment && !needsConnect) {
+        // Everything is complete, go to dashboard
         router.push('/dashboard');
       }
     }
