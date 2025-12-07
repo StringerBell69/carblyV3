@@ -13,7 +13,7 @@ function ConnectRefreshContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get('team_id');
-  const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string}>({});
+  const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string; stripeConnectAccountId?: string | null}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,6 +44,19 @@ function ConnectRefreshContent() {
     setError('');
 
     try {
+      // First, check if Connect account exists - if not, create it
+      if (!existingTeamStatus.stripeConnectAccountId) {
+        const { createTeamConnectAccount } = await import('../connect-actions');
+        const createResult = await createTeamConnectAccount({ teamId: existingTeamStatus.id });
+        
+        if (createResult.error) {
+          setError(createResult.error);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Now get the onboarding link
       const result = await getConnectOnboardingLink(existingTeamStatus.id);
 
       if (result.error || !result.url) {
