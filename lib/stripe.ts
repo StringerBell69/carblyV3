@@ -185,6 +185,22 @@ export async function checkConnectAccountStatus(
 }
 
 /**
+ * Create Express Dashboard login link
+ * Allows Express account holders to access their dashboard without manual login
+ */
+export async function createExpressDashboardLink(
+  accountId: string
+): Promise<{ url?: string; error?: string }> {
+  try {
+    const loginLink = await stripe.accounts.createLoginLink(accountId);
+    return { url: loginLink.url };
+  } catch (error: any) {
+    console.error('[createExpressDashboardLink]', error);
+    return { error: error?.message || 'Failed to create dashboard login link' };
+  }
+}
+
+/**
  * PAYMENT FUNCTIONS WITH CONNECT
  */
 

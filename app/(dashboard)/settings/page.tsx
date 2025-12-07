@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
+import { StripeDashboardButton } from './stripe-dashboard-button';
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -284,14 +285,7 @@ export default async function SettingsPage() {
                       </div>
                     </div>
                     {team.stripeConnectAccountId && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`https://dashboard.stripe.com/connect/accounts/${team.stripeConnectAccountId}`, '_blank')}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Ouvrir Stripe
-                      </Button>
+                      <StripeDashboardButton />
                     )}
                   </div>
                   
