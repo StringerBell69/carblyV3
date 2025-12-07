@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info } from 'lucide-react';
+import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info, LogOut } from 'lucide-react';
 import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
 import { createTeamConnectAccount, getConnectOnboardingLink } from './connect-actions';
+import { signOut } from '@/lib/auth-client';
 
 type Plan = 'free' | 'starter' | 'pro' | 'business';
 type BillingInterval = 'monthly' | 'yearly';
@@ -354,6 +355,24 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4">
       <div className="max-w-3xl mx-auto">
+        {/* Logout button */}
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                await signOut();
+                router.push('/login');
+              }
+            }}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Se déconnecter
+          </Button>
+        </div>
+        
         {/* Visual Stepper */}
         <div className="mb-6 sm:mb-12">
           <div className="flex items-center justify-between mb-8">

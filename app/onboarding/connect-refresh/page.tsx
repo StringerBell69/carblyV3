@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, LogOut } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
 import { checkExistingTeam } from '../actions';
+import { signOut } from '@/lib/auth-client';
 
 function ConnectRefreshContent() {
   const router = useRouter();
@@ -73,6 +74,15 @@ function ConnectRefreshContent() {
     }
   };
 
+  const handleLater = () => {
+    if (confirm('Voulez-vous vous déconnecter ou continuer vers le tableau de bord ?\n\nCliquez sur OK pour vous déconnecter\nCliquez sur Annuler pour aller au tableau de bord')) {
+      signOut();
+      router.push('/login');
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
       <Card className="w-full max-w-md border-yellow-200">
@@ -120,10 +130,21 @@ function ConnectRefreshContent() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push('/dashboard')}
+                onClick={handleLater}
                 className="w-full"
               >
                 Plus tard
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await signOut();
+                  router.push('/login');
+                }}
+                className="w-full text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Se déconnecter
               </Button>
             </div>
 
