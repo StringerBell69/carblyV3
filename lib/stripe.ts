@@ -122,9 +122,17 @@ export async function createConnectAccount({
     });
 
     return { accountId: account.id };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[createConnectAccount]', error);
-    return { error: 'Failed to create Connect account' };
+    
+    // Check if error is because Connect is not enabled
+    if (error?.message?.includes('signed up for Connect')) {
+      return { 
+        error: 'Stripe Connect n\'est pas activé sur ce compte. Veuillez activer Connect dans votre dashboard Stripe : https://dashboard.stripe.com/settings/connect' 
+      };
+    }
+    
+    return { error: error?.message || 'Failed to create Connect account' };
   }
 }
 

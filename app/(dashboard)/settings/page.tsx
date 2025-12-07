@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  ExternalLink,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -251,6 +252,58 @@ export default async function SettingsPage() {
                   <Link href="/settings/change-plan">
                     <Button variant="outline">Changer de plan</Button>
                   </Link>
+                </div>
+              </div>
+
+              <Separator className="my-6" />
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">Compte Stripe Connect</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Gérez votre compte de paiement pour recevoir les paiements de vos clients
+                  </p>
+                </div>
+                
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Statut du compte</p>
+                      <div className="flex items-center gap-2">
+                        {team.stripeConnectOnboarded ? (
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Configuré
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-700">
+                            <AlertTriangle className="h-3 w-3" />
+                            Configuration requise
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {team.stripeConnectAccountId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`https://dashboard.stripe.com/connect/accounts/${team.stripeConnectAccountId}`, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Ouvrir Stripe
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {!team.stripeConnectOnboarded && (
+                    <div className="pt-2">
+                      <Link href="/onboarding/connect-refresh">
+                        <Button variant="default" size="sm" className="w-full">
+                          Configurer les paiements
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
