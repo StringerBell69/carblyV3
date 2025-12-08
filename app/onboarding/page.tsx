@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,8 +82,9 @@ const PLANS = [
   },
 ];
 
-export default function OnboardingPage() {
+function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -103,6 +104,15 @@ export default function OnboardingPage() {
   useEffect(() => {
     checkForExistingTeam();
   }, []);
+
+  // Handle URL parameters (e.g., ?step=payment when returning from Stripe)
+  useEffect(() => {
+    const stepParam = searchParams.get('step');
+    if (stepParam === 'payment' && existingTeamStatus) {
+      // Force display of payment step (step 3)
+      setStep(3);
+    }
+  }, [searchParams, existingTeamStatus]);
 
   // Sync state with existing team and restore progress
   useEffect(() => {
@@ -132,24 +142,25 @@ export default function OnboardingPage() {
     }
   }, [existingTeamStatus]);
 
-  // Redirect to dashboard or connect setup if everything else is complete
-  // BUT only if user is not actively going through the flow (step === 1)
+  // Redirect to dashboard only if everything is complete
+  // Never redirect to connect-refresh from here - always show plan selection
   useEffect(() => {
-    if (existingTeamStatus && !loading && step === 1) {
+    const stepParam = searchParams.get('step');
+    
+    if (existingTeamStatus && !loading) {
       const isFree = existingTeamStatus.plan === 'free';
       const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
       const needsPayment = !isFree && !hasActiveSubscription;
       const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-      // Only redirect if payment is done (or not needed) but Connect is needed
-      if (!needsPayment && needsConnect) {
-        router.push('/onboarding/connect-refresh');
-      } else if (!needsPayment && !needsConnect) {
-        // Everything is complete, go to dashboard
+      // Only redirect to dashboard if EVERYTHING is complete
+      if (!needsPayment && !needsConnect) {
         router.push('/dashboard');
       }
+      // Otherwise, stay on this page and show step 3 (plan selection)
+      // The user can choose a plan and complete the flow
     }
-  }, [existingTeamStatus, loading, router, step]);
+  }, [existingTeamStatus, loading, router, searchParams]);
 
   const checkForExistingTeam = async () => {
     try {
@@ -301,9 +312,12 @@ export default function OnboardingPage() {
     const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
     const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-    // Only show summary card if payment is complete (or free plan)
-    // Otherwise, fall through to show the stepper
-    if (!needsPayment) {
+    // If free plan and needs Connect, show plan selection instead
+    // This allows users to upgrade or confirm their choice before Connect setup
+    if (isFree && needsConnect) {
+      // Fall through to stepper - will show plan selection (step 3)
+    } else if (!needsPayment && needsConnect) {
+      // Paid plan with active subscription but needs Connect
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
           <div className="max-w-2xl mx-auto">
@@ -340,15 +354,13 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  {needsConnect && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <div className="flex-1">
-                        <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
-                        <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
+                      <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {error && (
@@ -359,14 +371,12 @@ export default function OnboardingPage() {
                 )}
 
                 <div className="space-y-3">
-                  {needsConnect && (
-                    <Button
-                      onClick={() => router.push('/onboarding/connect-refresh')}
-                      className="w-full"
-                    >
-                      Configurer les paiements
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => router.push('/onboarding/connect-refresh')}
+                    className="w-full"
+                  >
+                    Configurer les paiements
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -767,5 +777,25 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Wrapper with Suspense to handle useSearchParams
+export default function OnboardingPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+              <p className="text-gray-600">Chargement...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <OnboardingPage />
+    </Suspense>
   );
 }

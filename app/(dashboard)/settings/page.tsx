@@ -291,7 +291,7 @@ export default async function SettingsPage() {
                   
                   {!team.stripeConnectOnboarded && (
                     <div className="pt-2">
-                      <Link href="/onboarding/connect-refresh">
+                      <Link href="/onboarding?step=payment">
                         <Button variant="default" size="sm" className="w-full">
                           Configurer les paiements
                         </Button>
