@@ -25,7 +25,7 @@ import {
   FileText,
   Clock,
 } from 'lucide-react';
-import { createReservation, createCustomer, checkVehicleAvailability, searchCustomers, getVehicleBookedDates } from '../actions';
+import { createReservation, createCustomer, checkVehicleAvailability, searchCustomers, getVehicleBookedDates, getTeamPlan } from '../actions';
 import { getVehicles } from '../../vehicles/actions';
 import { formatCurrency, calculateRentalPrice, calculateDays, formatDate } from '@/lib/utils';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -43,6 +43,7 @@ export default function NewReservationPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [plan, setPlan] = useState<string>('free');
 
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
@@ -76,7 +77,15 @@ export default function NewReservationPage() {
 
   useEffect(() => {
     loadVehicles();
+    loadPlan();
   }, []);
+
+  const loadPlan = async () => {
+    const result = await getTeamPlan();
+    if (!result.error && result.plan) {
+      setPlan(result.plan);
+    }
+  };
 
   useEffect(() => {
     if (customerMode === 'existing' && debouncedSearchQuery.length >= 3) {
@@ -285,7 +294,7 @@ export default function NewReservationPage() {
         customerId,
         startDate: start,
         endDate: end,
-        depositAmount: ((parseFloat(selectedVehicle.dailyRate) * calculateDays(start, end) * parseFloat(depositPercent)) / 100).toFixed(2),
+        depositAmount: ((parseFloat(selectedVehicle.dailyRate) * calculateDays(start, end) * (parseFloat(depositPercent) || 0)) / 100).toFixed(2),
         includeInsurance,
         insuranceAmount: includeInsurance ? (5 * calculateDays(start, end)).toFixed(2) : undefined,
         collectCautionOnline,
@@ -319,7 +328,7 @@ export default function NewReservationPage() {
 
     const dailyRate = parseFloat(selectedVehicle.dailyRate);
     const subtotal = dailyRate * days;
-    const deposit = (subtotal * parseFloat(depositPercent)) / 100;
+    const deposit = (subtotal * (parseFloat(depositPercent) || 0)) / 100;
     const insurance = includeInsurance ? 5 * days : 0;
     const total = subtotal + insurance;
 
@@ -1068,8 +1077,42 @@ export default function NewReservationPage() {
               </div>
             </div>
 
-            {/* <div className="space-y-3">
-              <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+            <div className="space-y-3">
+              <div className="p-3 border rounded-lg space-y-3">
+                <Label htmlFor="depositPercent" className="font-medium">
+                  Acompte à payer (%)
+                </Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Input
+                        id="depositPercent"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={depositPercent}
+                        onChange={(e) => setDepositPercent(e.target.value)}
+                        disabled={plan === 'free'}
+                        className="pr-8"
+                      />
+                      <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 text-sm text-muted-foreground">
+                    Montant : {formatCurrency((preview.subtotal * parseFloat(depositPercent || '0')) / 100)}
+                  </div>
+                </div>
+                {plan === 'free' && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Shield className="h-3 w-3" />
+                    L'acompte est fixé à 30% sur le plan gratuit. Passez au plan Starter pour le personnaliser.
+                  </p>
+                )}
+              </div>
+
+              {/* <div className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                 <Checkbox
                   id="insurance"
                   checked={includeInsurance}
@@ -1084,8 +1127,8 @@ export default function NewReservationPage() {
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   Inclure assurance (5€/jour)
                 </Label>
-              </div>
-            </div> */}
+              </div> */}
+            </div>
 
             <div className="flex gap-2">
               <Button

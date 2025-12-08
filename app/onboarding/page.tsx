@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info } from 'lucide-react';
-import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam } from './actions';
+import { AlertCircle, Building2, Users, CreditCard, Check, Loader2, Info, LogOut } from 'lucide-react';
+import { createOrganization, createTeam, createStripeCheckoutSession, checkExistingTeam, updateTeamPlan } from './actions';
 import { createTeamConnectAccount, getConnectOnboardingLink } from './connect-actions';
+import { signOut } from '@/lib/auth-client';
 
 type Plan = 'free' | 'starter' | 'pro' | 'business';
 type BillingInterval = 'monthly' | 'yearly';
@@ -117,24 +118,33 @@ export default function OnboardingPage() {
         setSelectedPlan(existingTeamStatus.plan as Plan);
       }
       
-      // If payment is needed (not free and no active subscription), go to step 3
+      // Determine which step to resume from
       const isFree = existingTeamStatus.plan === 'free';
-      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
+      const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
+      const needsPayment = !isFree && !hasActiveSubscription;
       
+      // Resume at the correct step:
+      // - If paid plan but no subscription: go to step 3 (payment)
+      // - Otherwise stay at step 1 (will redirect to dashboard or connect if needed)
       if (needsPayment) {
         setStep(3);
       }
     }
   }, [existingTeamStatus]);
 
-  // Redirect to dashboard if everything is set up
+  // Redirect to dashboard or connect setup if everything else is complete
   useEffect(() => {
     if (existingTeamStatus && !loading) {
       const isFree = existingTeamStatus.plan === 'free';
-      const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
+      const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
+      const needsPayment = !isFree && !hasActiveSubscription;
       const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-      if (!needsPayment && !needsConnect) {
+      // Only redirect if payment is done (or not needed) but Connect is needed
+      if (!needsPayment && needsConnect) {
+        router.push('/onboarding/connect-refresh');
+      } else if (!needsPayment && !needsConnect) {
+        // Everything is complete, go to dashboard
         router.push('/dashboard');
       }
     }
@@ -180,18 +190,32 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      const result = await createTeam({
-        organizationId,
-        name: teamName,
-        address: teamAddress,
-        plan: selectedPlan,
-      });
+      // If team already exists (user came back from payment), update the plan
+      if (teamId) {
+        const result = await updateTeamPlan({
+          teamId,
+          plan: selectedPlan,
+        });
 
-      if (result.error) {
-        throw new Error(result.error);
+        if (result.error) {
+          throw new Error(result.error);
+        }
+      } else {
+        // Create new team
+        const result = await createTeam({
+          organizationId,
+          name: teamName,
+          address: teamAddress,
+          plan: selectedPlan,
+        });
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        setTeamId(result.team!.id);
       }
 
-      setTeamId(result.team!.id);
       setStep(3);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create team');
@@ -354,6 +378,24 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 sm:py-12 px-4">
       <div className="max-w-3xl mx-auto">
+        {/* Logout button */}
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                await signOut();
+                router.push('/login');
+              }
+            }}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Se déconnecter
+          </Button>
+        </div>
+        
         {/* Visual Stepper */}
         <div className="mb-6 sm:mb-12">
           <div className="flex items-center justify-between mb-8">

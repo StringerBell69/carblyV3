@@ -125,6 +125,7 @@ export async function changePlan(data: {
       },
       success_url: `${process.env.NEXT_PUBLIC_URL}/settings?plan_changed=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/settings?tab=billing`,
+      allow_promotion_codes: true,
     });
 
     return { url: checkoutSession.url };

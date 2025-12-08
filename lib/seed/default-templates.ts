@@ -4,192 +4,130 @@ import { eq, isNull } from 'drizzle-orm';
 
 export const defaultTemplates = [
   {
-    name: 'Booking Confirmation',
+    name: 'Confirmation de réservation',
     type: 'email' as const,
-    subject: 'Your CARBLY Booking is Confirmed!',
-    message: `Dear [Customer Name],
+    subject: '✅ Réservation confirmée - {{vehiculeMarque}} {{vehiculeModele}}',
+    message: `Bonjour {{clientPrenom}},
 
-Thank you for booking with CARBLY! We're pleased to confirm your reservation.
+Nous vous confirmons votre réservation !
 
-Booking Details:
-- Vehicle: [Vehicle Make & Model]
-- Pickup Date: [Pickup Date]
-- Return Date: [Return Date]
-- Pickup Location: [Location]
+📋 Détails de la réservation :
+• Véhicule : {{vehiculeMarque}} {{vehiculeModele}}
+• Du : {{dateDebut}}
+• Au : {{dateFin}}
+• Montant total : {{montantTotal}}€
 
-Important Information:
-- Please bring a valid driver's license and ID
-- Arrive 15 minutes early for vehicle inspection
-- Contact us at [Phone] if you need to modify your booking
+📍 Adresse de retrait : {{adresseAgence}}
 
-We look forward to serving you!
+⚠️ N'oubliez pas d'apporter :
+- Votre pièce d'identité
+- Votre permis de conduire
+- Une carte bancaire pour la caution
 
-Best regards,
-The CARBLY Team`,
+À très bientôt !
+L'équipe {{nomAgence}}`,
   },
   {
-    name: 'Pickup Reminder',
+    name: 'Rappel de retrait',
     type: 'sms' as const,
     subject: null,
-    message: 'Reminder: Your CARBLY rental pickup is tomorrow at [Time] at [Location]. See you soon!',
+    message: '🚗 Rappel : votre location {{vehiculeMarque}} {{vehiculeModele}} commence demain le {{dateDebut}}. RDV à {{adresseAgence}}. À bientôt !',
   },
   {
-    name: 'Return Reminder',
+    name: 'Rappel de restitution',
     type: 'sms' as const,
     subject: null,
-    message: 'Reminder: Please return your CARBLY rental by [Time] today at [Location]. Safe travels!',
+    message: '⏰ Rappel : merci de restituer votre {{vehiculeMarque}} {{vehiculeModele}} demain ({{dateFin}}) à {{adresseAgence}}. Bonne route !',
   },
   {
-    name: 'Thank You Message',
+    name: 'Rappel de restitution (Email)',
     type: 'email' as const,
-    subject: 'Thank You for Choosing CARBLY',
-    message: `Dear [Customer Name],
+    subject: '⏰ Rappel : Restitution demain - {{vehiculeMarque}} {{vehiculeModele}}',
+    message: `Bonjour {{clientPrenom}},
 
-Thank you for choosing CARBLY for your rental needs. We hope you had a great experience!
+N'oubliez pas de restituer votre véhicule demain !
 
-Your feedback is important to us. Please take a moment to rate your experience and let us know how we did.
+📋 Rappel de votre location :
+• Véhicule : {{vehiculeMarque}} {{vehiculeModele}}
+• Date de restitution : {{dateFin}}
+• Adresse : {{adresseAgence}}
 
-We'd love to serve you again on your next trip!
+✅ Merci de restituer le véhicule avec :
+- Le même niveau de carburant qu'au retrait
+- Tous les documents de bord
+- Le véhicule propre
 
-Loyalty Points Earned: [Points]
-
-Best regards,
-The CARBLY Team`,
+Merci de votre confiance !
+L'équipe {{nomAgence}}`,
   },
   {
-    name: 'Payment Reminder',
+    name: 'Contrat signé',
     type: 'email' as const,
-    subject: 'Payment Reminder - CARBLY Booking',
-    message: `Dear [Customer Name],
+    subject: '🎉 Contrat signé - Votre location est confirmée !',
+    message: `Bonjour {{clientPrenom}},
 
-This is a friendly reminder that payment for your CARBLY booking is pending.
+Votre contrat a été signé avec succès. Tout est prêt pour votre location !
 
-Booking Details:
-- Booking ID: [Booking ID]
-- Amount Due: [Amount]
-- Due Date: [Due Date]
+📋 Récapitulatif :
+• Véhicule : {{vehiculeMarque}} {{vehiculeModele}}
+• Date de retrait : {{dateDebut}}
+• Date de restitution : {{dateFin}}
+• Adresse : {{adresseAgence}}
 
-Please complete payment at your earliest convenience to confirm your reservation.
+⚠️ À ne pas oublier :
+- Votre pièce d'identité
+- Votre permis de conduire
+- Une carte bancaire pour la caution
 
-You can make payment securely through your booking link or contact us for assistance.
-
-Thank you,
-The CARBLY Team`,
+Nous avons hâte de vous accueillir !
+L'équipe {{nomAgence}}`,
   },
   {
-    name: 'Payment Confirmation',
+    name: 'Remerciement après location',
     type: 'email' as const,
-    subject: 'Payment Received - CARBLY',
-    message: `Dear [Customer Name],
+    subject: '🙏 Merci pour votre location !',
+    message: `Bonjour {{clientPrenom}},
 
-Thank you! We've received your payment for booking #[Booking ID].
+Merci d'avoir fait confiance à {{nomAgence}} pour votre location de {{vehiculeMarque}} {{vehiculeModele}} !
 
-Payment Details:
-- Amount Paid: [Amount]
-- Payment Date: [Date]
-- Transaction ID: [Transaction ID]
+Nous espérons que tout s'est bien passé et que vous avez apprécié votre expérience.
 
-Your reservation is now fully confirmed. We look forward to seeing you on [Pickup Date].
+📝 Votre avis compte
+N'hésitez pas à nous laisser un avis pour nous aider à nous améliorer.
 
-Best regards,
-The CARBLY Team`,
+À très bientôt pour une prochaine location !
+L'équipe {{nomAgence}}`,
   },
   {
-    name: 'Welcome New Customer',
+    name: 'Rappel de paiement',
     type: 'email' as const,
-    subject: 'Welcome to CARBLY!',
-    message: `Dear [Customer Name],
+    subject: '💳 Rappel : Paiement en attente',
+    message: `Bonjour {{clientPrenom}},
 
-Welcome to CARBLY! We're excited to have you as a customer.
+Nous n'avons pas encore reçu le paiement pour votre réservation.
 
-With CARBLY, you can:
-- Book vehicles easily online
-- Manage your reservations
-- Earn loyalty points with every rental
-- Access exclusive member benefits
+📋 Détails :
+• Véhicule : {{vehiculeMarque}} {{vehiculeModele}}
+• Du : {{dateDebut}}
+• Au : {{dateFin}}
+• Montant : {{montantTotal}}€
 
-Your account is now active. Start exploring our fleet and book your next adventure!
+Veuillez procéder au paiement pour confirmer votre réservation.
 
-Need help? Contact us anytime at [Email] or [Phone].
-
-Happy travels,
-The CARBLY Team`,
+Besoin d'aide ? Contactez-nous !
+L'équipe {{nomAgence}}`,
   },
   {
-    name: 'Booking Cancellation',
-    type: 'email' as const,
-    subject: 'Booking Cancellation Confirmation',
-    message: `Dear [Customer Name],
-
-This email confirms the cancellation of your CARBLY booking.
-
-Cancelled Booking:
-- Booking ID: [Booking ID]
-- Vehicle: [Vehicle]
-- Original Dates: [Dates]
-
-Refund Information:
-- Refund Amount: [Amount]
-- Processing Time: 5-7 business days
-
-If you cancelled by mistake or need assistance with a new booking, please contact us immediately.
-
-We hope to serve you again in the future!
-
-Best regards,
-The CARBLY Team`,
-  },
-  {
-    name: 'Late Return Notice',
+    name: 'Retard de restitution',
     type: 'sms' as const,
     subject: null,
-    message: 'Your CARBLY rental was due at [Time]. Please return ASAP or call us at [Phone] to extend. Late fees may apply.',
-  },
-  {
-    name: 'Damage Report',
-    type: 'email' as const,
-    subject: 'Vehicle Inspection Report - CARBLY',
-    message: `Dear [Customer Name],
-
-During the return inspection of your rental (Booking #[Booking ID]), we noted the following:
-
-Inspection Findings:
-[Damage Description]
-
-Next Steps:
-- We're reviewing the inspection report
-- Insurance claim may be filed if applicable
-- We'll contact you within 2 business days with details
-
-If you have any questions or concerns, please contact us immediately.
-
-Thank you for your cooperation,
-The CARBLY Team`,
-  },
-  {
-    name: 'Special Offer',
-    type: 'email' as const,
-    subject: 'Special Offer Just for You! 🎉',
-    message: `Dear [Customer Name],
-
-We have a special offer just for you!
-
-[Offer Details]
-
-Valid until: [Expiry Date]
-
-Book now and save! Use code: [Promo Code]
-
-Don't miss out on this exclusive deal!
-
-Best regards,
-The CARBLY Team`,
+    message: "⚠️ Votre location {{vehiculeMarque}} {{vehiculeModele}} devait être restituée. Merci de nous contacter au plus vite. Des frais de retard peuvent s'appliquer.",
   },
 ];
 
 /**
- * Seeds default message templates if they don't exist
- * Only creates templates marked as isDefault and with no teamId
+ * Seeds default message templates
+ * Deletes existing default templates and creates new ones
  */
 export async function seedDefaultTemplates() {
   try {
@@ -198,9 +136,18 @@ export async function seedDefaultTemplates() {
       where: eq(messageTemplates.isDefault, true),
     });
 
+    // If templates exist and they're the old English ones, delete them
     if (existing.length > 0) {
-      console.log(`Default templates already exist (${existing.length} found)`);
-      return existing;
+      const hasOldTemplates = existing.some(t => t.name === 'Booking Confirmation' || t.name === 'Thank You Message');
+      
+      if (!hasOldTemplates) {
+        console.log(`French default templates already exist (${existing.length} found)`);
+        return existing;
+      }
+      
+      // Delete old templates
+      console.log('Deleting old English templates...');
+      await db.delete(messageTemplates).where(eq(messageTemplates.isDefault, true));
     }
 
     // Insert default templates
@@ -215,7 +162,7 @@ export async function seedDefaultTemplates() {
       )
       .returning();
 
-    console.log(`Created ${inserted.length} default templates`);
+    console.log(`Created ${inserted.length} French default templates`);
     return inserted;
   } catch (error) {
     console.error('Failed to seed default templates:', error);

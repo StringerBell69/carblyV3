@@ -9,6 +9,33 @@ import { generateRandomToken, calculateRentalPrice } from '@/lib/utils';
 import { sendReservationPaymentLink } from '@/lib/resend';
 import { checkReservationLimit, PlanLimitError } from '@/lib/plan-limits';
 import { isYousignEnabled } from '@/lib/feature-flags';
+import { teams } from '@/drizzle/schema';
+
+export async function getTeamPlan() {
+  try {
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'Unauthorized' };
+    }
+
+    const team = await db.query.teams.findFirst({
+      where: eq(teams.id, teamId),
+      columns: {
+        plan: true,
+      },
+    });
+
+    if (!team) {
+      return { error: 'Team not found' };
+    }
+
+    return { plan: team.plan };
+  } catch (error) {
+    console.error('[getTeamPlan]', error);
+    return { error: 'Failed to fetch team plan' };
+  }
+}
 
 export async function getReservations(filters?: {
   status?: string;

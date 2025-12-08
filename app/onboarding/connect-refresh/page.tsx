@@ -5,15 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, LogOut } from 'lucide-react';
 import { getConnectOnboardingLink } from '../connect-actions';
 import { checkExistingTeam } from '../actions';
+import { signOut } from '@/lib/auth-client';
 
 function ConnectRefreshContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get('team_id');
-  const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string}>({});
+  const [existingTeamStatus, setExistingTeamStatus] = useState<{id?: string; stripeConnectAccountId?: string | null}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,6 +45,19 @@ function ConnectRefreshContent() {
     setError('');
 
     try {
+      // First, check if Connect account exists - if not, create it
+      if (!existingTeamStatus.stripeConnectAccountId) {
+        const { createTeamConnectAccount } = await import('../connect-actions');
+        const createResult = await createTeamConnectAccount({ teamId: existingTeamStatus.id });
+        
+        if (createResult.error) {
+          setError(createResult.error);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Now get the onboarding link
       const result = await getConnectOnboardingLink(existingTeamStatus.id);
 
       if (result.error || !result.url) {
@@ -57,6 +71,15 @@ function ConnectRefreshContent() {
       setError('Failed to restart onboarding');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLater = () => {
+    if (confirm('Voulez-vous vous déconnecter ou continuer vers le tableau de bord ?\n\nCliquez sur OK pour vous déconnecter\nCliquez sur Annuler pour aller au tableau de bord')) {
+      signOut();
+      router.push('/login');
+    } else {
+      router.push('/dashboard');
     }
   };
 
@@ -107,10 +130,21 @@ function ConnectRefreshContent() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push('/dashboard')}
+                onClick={handleLater}
                 className="w-full"
               >
                 Plus tard
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await signOut();
+                  router.push('/login');
+                }}
+                className="w-full text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Se déconnecter
               </Button>
             </div>
 
