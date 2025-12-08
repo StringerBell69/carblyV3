@@ -142,24 +142,25 @@ function OnboardingPage() {
     }
   }, [existingTeamStatus]);
 
-  // Redirect to dashboard or connect setup if everything else is complete
-  // BUT only if user is not actively going through the flow (step === 1)
+  // Redirect to dashboard only if everything is complete
+  // Never redirect to connect-refresh from here - always show plan selection
   useEffect(() => {
-    if (existingTeamStatus && !loading && step === 1) {
+    const stepParam = searchParams.get('step');
+    
+    if (existingTeamStatus && !loading) {
       const isFree = existingTeamStatus.plan === 'free';
       const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
       const needsPayment = !isFree && !hasActiveSubscription;
       const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-      // Only redirect if payment is done (or not needed) but Connect is needed
-      if (!needsPayment && needsConnect) {
-        router.push('/onboarding/connect-refresh');
-      } else if (!needsPayment && !needsConnect) {
-        // Everything is complete, go to dashboard
+      // Only redirect to dashboard if EVERYTHING is complete
+      if (!needsPayment && !needsConnect) {
         router.push('/dashboard');
       }
+      // Otherwise, stay on this page and show step 3 (plan selection)
+      // The user can choose a plan and complete the flow
     }
-  }, [existingTeamStatus, loading, router, step]);
+  }, [existingTeamStatus, loading, router, searchParams]);
 
   const checkForExistingTeam = async () => {
     try {
@@ -311,9 +312,12 @@ function OnboardingPage() {
     const needsPayment = !isFree && (!existingTeamStatus.stripeSubscriptionId || existingTeamStatus.subscriptionStatus !== 'active');
     const needsConnect = !existingTeamStatus.stripeConnectOnboarded;
 
-    // Only show summary card if payment is complete (or free plan)
-    // Otherwise, fall through to show the stepper
-    if (!needsPayment) {
+    // If free plan and needs Connect, show plan selection instead
+    // This allows users to upgrade or confirm their choice before Connect setup
+    if (isFree && needsConnect) {
+      // Fall through to stepper - will show plan selection (step 3)
+    } else if (!needsPayment && needsConnect) {
+      // Paid plan with active subscription but needs Connect
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
           <div className="max-w-2xl mx-auto">
@@ -350,15 +354,13 @@ function OnboardingPage() {
                     </div>
                   </div>
 
-                  {needsConnect && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <div className="flex-1">
-                        <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
-                        <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">Configuration Stripe Connect requise</p>
+                      <p className="text-sm text-yellow-700">Pour recevoir les paiements de vos clients</p>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {error && (
@@ -369,14 +371,12 @@ function OnboardingPage() {
                 )}
 
                 <div className="space-y-3">
-                  {needsConnect && (
-                    <Button
-                      onClick={() => router.push('/onboarding/connect-refresh')}
-                      className="w-full"
-                    >
-                      Configurer les paiements
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => router.push('/onboarding/connect-refresh')}
+                    className="w-full"
+                  >
+                    Configurer les paiements
+                  </Button>
                 </div>
               </CardContent>
             </Card>
