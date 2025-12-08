@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,8 +82,9 @@ const PLANS = [
   },
 ];
 
-export default function OnboardingPage() {
+function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -103,6 +104,15 @@ export default function OnboardingPage() {
   useEffect(() => {
     checkForExistingTeam();
   }, []);
+
+  // Handle URL parameters (e.g., ?step=payment when returning from Stripe)
+  useEffect(() => {
+    const stepParam = searchParams.get('step');
+    if (stepParam === 'payment' && existingTeamStatus) {
+      // Force display of payment step (step 3)
+      setStep(3);
+    }
+  }, [searchParams, existingTeamStatus]);
 
   // Sync state with existing team and restore progress
   useEffect(() => {
@@ -767,5 +777,25 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Wrapper with Suspense to handle useSearchParams
+export default function OnboardingPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+              <p className="text-gray-600">Chargement...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <OnboardingPage />
+    </Suspense>
   );
 }
