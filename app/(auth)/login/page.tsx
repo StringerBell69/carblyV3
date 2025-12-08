@@ -36,14 +36,13 @@ export default function LoginPage() {
 
       // Check user data to determine redirect
       const user = result.data?.user as any;
-      console.log(user);
 
       if (user?.isSuperAdmin) {
         router.push('/admin');
-      } else if (user?.currentTeamId) {
-        router.push('/dashboard');
       } else {
-        router.push('/onboarding');
+        // Always redirect to dashboard - the dashboard layout will handle
+        // onboarding redirects if needed based on actual DB state
+        router.push('/dashboard');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Carbly - Gestion de flotte de location',
-  description: 'Plateforme SaaS B2B pour agences de location de voitures',
+  description: 'Plateforme pour agences de location de voitures',
 };
 
 export const viewport = {
