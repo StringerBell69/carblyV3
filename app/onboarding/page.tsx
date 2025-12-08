@@ -133,8 +133,9 @@ export default function OnboardingPage() {
   }, [existingTeamStatus]);
 
   // Redirect to dashboard or connect setup if everything else is complete
+  // BUT only if user is not actively going through the flow (step === 1)
   useEffect(() => {
-    if (existingTeamStatus && !loading) {
+    if (existingTeamStatus && !loading && step === 1) {
       const isFree = existingTeamStatus.plan === 'free';
       const hasActiveSubscription = existingTeamStatus.stripeSubscriptionId && existingTeamStatus.subscriptionStatus === 'active';
       const needsPayment = !isFree && !hasActiveSubscription;
@@ -148,7 +149,7 @@ export default function OnboardingPage() {
         router.push('/dashboard');
       }
     }
-  }, [existingTeamStatus, loading, router]);
+  }, [existingTeamStatus, loading, router, step]);
 
   const checkForExistingTeam = async () => {
     try {
