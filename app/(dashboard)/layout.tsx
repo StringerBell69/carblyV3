@@ -23,24 +23,14 @@ export default async function DashboardLayout({
   }
 
   // Check if team has completed onboarding
-  // User might have created team but not completed payment or Stripe Connect setup
-  const isFree = team.plan === 'free';
-  
-  const needsOnboarding = isFree
-    ? !team.stripeConnectOnboarded // Free plan only needs Connect onboarding
-    : (!team.stripeSubscriptionId ||
-       team.subscriptionStatus !== 'active' ||
-       !team.stripeConnectOnboarded);
+  // Redirect to payment step for any incomplete onboarding (payment or Connect)
+  const hasActiveSubscription = team.stripeSubscriptionId && team.subscriptionStatus === 'active';
+  const isPaymentComplete = team.plan === 'free' || hasActiveSubscription;
+  const isConnectComplete = team.stripeConnectOnboarded;
 
-  if (needsOnboarding) {
-    // Redirect to appropriate page based on onboarding status
-    if (!isFree && (!team.stripeSubscriptionId || team.subscriptionStatus !== 'active')) {
-      // Payment not completed - redirect to onboarding page that will show current status
-      redirect('/onboarding');
-    } else if (!team.stripeConnectOnboarded) {
-      // Stripe Connect not completed - redirect to connect refresh page
-      redirect('/onboarding/connect-refresh');
-    }
+  if (!isPaymentComplete || !isConnectComplete) {
+    // Always redirect to payment step - user can choose plan and complete payment/Connect
+    redirect('/onboarding?step=payment');
   }
 
   return (
