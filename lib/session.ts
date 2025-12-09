@@ -21,6 +21,8 @@ export const getCurrentSession = cache(async () => {
  *
  * Returns the user's team from DB instead of relying on session.user.currentTeamId
  * which may not be up-to-date after onboarding
+ * 
+ * Includes retry logic to handle potential DB timing issues after login
  */
 export const getCurrentTeam = cache(async () => {
   const session = await getCurrentSession();
@@ -29,19 +31,34 @@ export const getCurrentTeam = cache(async () => {
     return null;
   }
 
-  // Get user's team from DB
-  const userTeam = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, session.user.id),
-    with: {
-      team: {
-        with: {
-          organization: true,
+  // Retry logic to handle DB timing issues
+  const maxRetries = 3;
+  const retryDelay = 100; // ms
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Get user's team from DB
+    const userTeam = await db.query.teamMembers.findFirst({
+      where: eq(teamMembers.userId, session.user.id),
+      with: {
+        team: {
+          with: {
+            organization: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  return userTeam?.team || null;
+    if (userTeam?.team) {
+      return userTeam.team;
+    }
+
+    // Wait before retrying (except on last attempt)
+    if (attempt < maxRetries - 1) {
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
+  }
+
+  return null;
 });
 
 /**
