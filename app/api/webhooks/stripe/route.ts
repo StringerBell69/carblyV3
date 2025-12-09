@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
           const updateData: any = {
             plan: plan,
             maxVehicles: maxVehicles,
+            // Mark onboarding as completed once subscription is paid
+            onboardingCompleted: true,
           };
 
           // Only update subscription fields if subscription exists
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
             .set(updateData)
             .where(eq(teams.id, metadata.teamId));
 
-          console.log('[Stripe Webhook] Plan updated for team:', metadata.teamId, 'with plan:', plan, 'maxVehicles:', maxVehicles);
+          console.log('[Stripe Webhook] Plan updated for team:', metadata.teamId, 'with plan:', plan, 'maxVehicles:', maxVehicles, 'onboardingCompleted: true');
         }
 
         // Handle balance payment (solde)
