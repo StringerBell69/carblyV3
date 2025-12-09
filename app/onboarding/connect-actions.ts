@@ -139,6 +139,8 @@ export async function checkTeamConnectStatus(teamId: string) {
         .update(teams)
         .set({
           stripeConnectOnboarded: true,
+          // Mark onboarding as completed once Connect is configured
+          onboardingCompleted: true,
         })
         .where(eq(teams.id, teamId));
     }

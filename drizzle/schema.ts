@@ -37,6 +37,7 @@ export const teams = pgTable('teams', {
   subscriptionStatus: text('subscription_status').default('active'), // active, past_due, canceled
   stripeConnectAccountId: text('stripe_connect_account_id').unique(),
   stripeConnectOnboarded: boolean('stripe_connect_onboarded').default(false).notNull(),
+  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
   smsNotificationsEnabled: boolean('sms_notifications_enabled').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -23,13 +23,9 @@ export default async function DashboardLayout({
   }
 
   // Check if team has completed onboarding
-  // Redirect to payment step for any incomplete onboarding (payment or Connect)
-  const hasActiveSubscription = team.stripeSubscriptionId && team.subscriptionStatus === 'active';
-  const isPaymentComplete = team.plan === 'free' || hasActiveSubscription;
-  const isConnectComplete = team.stripeConnectOnboarded;
-
-  if (!isPaymentComplete || !isConnectComplete) {
-    // Always redirect to payment step - user can choose plan and complete payment/Connect
+  // onboardingCompleted is set to true once and never reset, even if subscription is cancelled
+  if (!team.onboardingCompleted) {
+    // Redirect to onboarding - user needs to complete payment and Connect setup
     redirect('/onboarding?step=payment');
   }
 
