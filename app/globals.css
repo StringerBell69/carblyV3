@@ -279,3 +279,17 @@ code, pre {
   background: oklch(39.8% 0.195 277.366 / 0.3);
   color: var(--color-foreground);
 }
+
+/* Mobile PWA Safe Area */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Hide scrollbar for horizontal scroll on mobile tabs */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

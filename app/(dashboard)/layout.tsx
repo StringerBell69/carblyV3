@@ -22,19 +22,29 @@ export default async function DashboardLayout({
     redirect('/onboarding');
   }
 
-  // Check if team has completed onboarding
-  // onboardingCompleted is set to true once and never reset, even if subscription is cancelled
-  if (!team.onboardingCompleted) {
-    // Redirect to onboarding - user needs to complete payment and Connect setup
+  // Check if team has completed onboarding based on plan type
+  const isFree = team.plan === 'free';
+  const hasActiveSubscription = team.stripeSubscriptionId && team.subscriptionStatus === 'active';
+  const isConnectConfigured = team.stripeConnectOnboarded;
+
+  // Determine if onboarding is needed
+  if (isFree && !isConnectConfigured) {
+    // Free plan: needs Connect setup, send to plan selection
     redirect('/onboarding?step=payment');
+  } else if (!isFree && !hasActiveSubscription) {
+    // Paid plan without active subscription: needs to pay, send to plan selection
+    redirect('/onboarding?step=payment');
+  } else if (!isFree && hasActiveSubscription && !isConnectConfigured) {
+    // Paid plan with active subscription but no Connect: send to Connect setup
+    redirect('/onboarding/connect-refresh');
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardNav user={session.user} />
-      <div className="lg:pl-64 pt-16 lg:pt-0">
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="lg:pl-64 pt-14 lg:pt-0 pb-20 lg:pb-0">
+        <main className="py-2 sm:py-4 lg:py-6">
+          <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8">
             {children}
           </div>
         </main>

@@ -5,22 +5,13 @@ import {
   IconCircleCheckFilled,
   IconClock,
   IconLoader,
-  IconLayoutColumns,
-  IconChevronDown,
-  IconDotsVertical,
 } from "@tabler/icons-react"
 import { formatDate, formatCurrency } from "@/lib/utils"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -35,8 +26,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Reservation {
   id: string
@@ -79,6 +68,7 @@ const statusLabels: Record<string, string> = {
 }
 
 export function DataTable({ data }: DataTableProps) {
+  const router = useRouter()
   const [currentView, setCurrentView] = React.useState("all")
 
   const filteredData = React.useMemo(() => {
@@ -94,6 +84,10 @@ export function DataTable({ data }: DataTableProps) {
     return data
   }, [data, currentView])
 
+  const handleRowClick = (reservationId: string) => {
+    router.push(`/reservations/${reservationId}`)
+  }
+
   return (
     <Tabs
       defaultValue="all"
@@ -101,7 +95,7 @@ export function DataTable({ data }: DataTableProps) {
       onValueChange={setCurrentView}
       className="w-full flex-col justify-start gap-6"
     >
-      <div className="flex items-center justify-between px-4 lg:px-6">
+      <div className="flex items-center justify-between px-2 sm:px-4 lg:px-6">
         <Label htmlFor="view-selector" className="sr-only">
           Vue
         </Label>
@@ -132,7 +126,7 @@ export function DataTable({ data }: DataTableProps) {
       </div>
       <TabsContent
         value={currentView}
-        className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
+        className="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6"
       >
         <div className="overflow-hidden rounded-lg border">
           <Table>
@@ -141,23 +135,23 @@ export function DataTable({ data }: DataTableProps) {
                 <TableHead>Client</TableHead>
                 <TableHead>Véhicule</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead>Date de début</TableHead>
-                <TableHead>Date de fin</TableHead>
+                <TableHead className="hidden md:table-cell">Date de début</TableHead>
+                <TableHead className="hidden md:table-cell">Date de fin</TableHead>
                 <TableHead className="text-right">Montant</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length > 0 ? (
                 filteredData.map((reservation) => (
-                  <TableRow key={reservation.id}>
+                  <TableRow 
+                    key={reservation.id}
+                    onClick={() => handleRowClick(reservation.id)}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
                     <TableCell>
-                      <Link
-                        href={`/reservations/${reservation.id}`}
-                        className="font-medium hover:underline"
-                      >
+                      <span className="font-medium">
                         {reservation.customer.firstName} {reservation.customer.lastName}
-                      </Link>
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -170,12 +164,12 @@ export function DataTable({ data }: DataTableProps) {
                         {statusLabels[reservation.status] || reservation.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="text-sm">
                         {formatDate(new Date(reservation.startDate))}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="text-sm">
                         {formatDate(new Date(reservation.endDate))}
                       </div>
@@ -183,36 +177,12 @@ export function DataTable({ data }: DataTableProps) {
                     <TableCell className="text-right font-medium">
                       {formatCurrency(parseFloat(reservation.totalAmount))}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-                            size="icon"
-                          >
-                            <IconDotsVertical />
-                            <span className="sr-only">Ouvrir le menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/reservations/${reservation.id}`}>Voir</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/reservations/${reservation.id}`}>Modifier</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive">Annuler</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="h-24 text-center text-muted-foreground"
                   >
                     Aucune réservation trouvée.
@@ -222,7 +192,7 @@ export function DataTable({ data }: DataTableProps) {
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-4">
+        <div className="flex items-center justify-between px-2 sm:px-4">
           <div className="text-muted-foreground flex-1 text-sm">
             Affichage de {filteredData.length} sur {data.length} réservation{data.length !== 1 ? 's' : ''}.
           </div>

@@ -239,33 +239,34 @@ export default function VehicleDetailPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
       <div>
-        <Link href="/vehicles" className="text-primary hover:underline mb-4 inline-block">
-          ← Retour à la liste
+        <Link href="/vehicles" className="text-primary hover:underline mb-3 sm:mb-4 inline-flex items-center gap-1.5 text-sm">
+          ← <span className="hidden sm:inline">Retour à la liste</span><span className="sm:hidden">Retour</span>
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-xl sm:text-3xl font-bold">
               {vehicle.brand} {vehicle.model}
             </h1>
-            <p className="text-gray-600 mt-1">{vehicle.plate}</p>
+            <p className="text-sm sm:text-base text-muted-foreground mt-0.5">{vehicle.plate}</p>
           </div>
           {!isEditing && (
-            <div className="flex gap-2">
-              <Button onClick={() => setIsEditing(true)}>
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setIsEditing(true)} className="h-10">
                 <Edit className="mr-2 h-4 w-4" />
-                Modifier
+                <span className="hidden sm:inline">Modifier</span>
+                <span className="sm:hidden">Modifier</span>
               </Button>
               <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
                     disabled={saving}
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-600 hover:bg-red-50 h-10"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Supprimer
+                    <Trash2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Supprimer</span>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -299,32 +300,37 @@ export default function VehicleDetailPage() {
       )}
 
       {!isEditing ? (
-        <Tabs defaultValue="info" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info">
-              <FileText className="mr-2 h-4 w-4" />
-              Informations
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              <History className="mr-2 h-4 w-4" />
-              Historique
-            </TabsTrigger>
-            <TabsTrigger value="documents">
-              <FileText className="mr-2 h-4 w-4" />
-              Documents
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="info" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-3">
+              <TabsTrigger value="info" className="flex-1 px-3 sm:px-4">
+                <FileText className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden xs:inline">Infos</span>
+                <span className="xs:hidden">Info</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex-1 px-3 sm:px-4">
+                <History className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden xs:inline">Historique</span>
+                <span className="xs:hidden">Hist.</span>
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex-1 px-3 sm:px-4">
+                <FileText className="mr-1.5 sm:mr-2 h-4 w-4" />
+                <span className="hidden xs:inline">Documents</span>
+                <span className="xs:hidden">Docs</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <TabsContent value="info" className="space-y-6">
+          <TabsContent value="info" className="space-y-4 sm:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="h-5 w-5" />
+              <CardHeader className="py-3 sm:py-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Car className="h-4 w-4 sm:h-5 sm:w-5" />
                   Informations générales
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-6">
+              <CardContent className="space-y-4 pt-0">
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Car className="h-4 w-4" />

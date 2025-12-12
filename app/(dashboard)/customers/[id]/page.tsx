@@ -31,8 +31,9 @@ import {
 export default async function CustomerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const organizationId = await getCurrentOrganizationId();
 
   if (!organizationId) {
@@ -42,7 +43,7 @@ export default async function CustomerDetailPage({
   // Ensure customer belongs to current organization
   const customer = await db.query.customers.findFirst({
     where: and(
-      eq(customers.id, params.id),
+      eq(customers.id, id),
       eq(customers.organizationId, organizationId)
     ),
   });
@@ -52,7 +53,7 @@ export default async function CustomerDetailPage({
   }
 
   const customerReservations = await db.query.reservations.findMany({
-    where: eq(reservations.customerId, params.id),
+    where: eq(reservations.customerId, id),
     with: {
       vehicle: true,
     },
