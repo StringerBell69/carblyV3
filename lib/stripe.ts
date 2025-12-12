@@ -30,7 +30,7 @@ export const PLANS = {
   },
   starter: {
     name: "Starter",
-    price: 49,
+    price: 20,
     priceId: process.env.STRIPE_PRICE_STARTER || "price_starter",
     maxVehicles: 10,
     features: [
@@ -45,7 +45,7 @@ export const PLANS = {
   },
   pro: {
     name: "Pro",
-    price: 99,
+    price: 49,
     priceId: process.env.STRIPE_PRICE_PRO || "price_pro",
     maxVehicles: 25,
     features: [
@@ -62,7 +62,7 @@ export const PLANS = {
   },
   business: {
     name: "Business",
-    price: 199,
+    price: 100,
     priceId: process.env.STRIPE_PRICE_BUSINESS || "price_business",
     maxVehicles: -1, // unlimited
     features: [
@@ -512,5 +512,29 @@ export async function createIdentityVerification({
   } catch (error) {
     console.error('[createIdentityVerification]', error);
     return { error: 'Failed to create identity verification' };
+  }
+}
+
+/**
+ * Create a Stripe Customer Portal session for subscription management
+ * Allows customers to manage their subscription, update payment methods, view invoices
+ */
+export async function createCustomerPortalSession({
+  customerId,
+  returnUrl,
+}: {
+  customerId: string;
+  returnUrl: string;
+}): Promise<{ url?: string; error?: string }> {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+
+    return { url: session.url };
+  } catch (error: any) {
+    console.error('[createCustomerPortalSession]', error);
+    return { error: error?.message || 'Failed to create portal session' };
   }
 }
