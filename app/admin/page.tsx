@@ -56,9 +56,9 @@ export default async function AdminDashboardPage() {
   });
 
   const planLabels: Record<string, string> = {
-    starter: 'Starter (49€)',
-    pro: 'Pro (99€)',
-    business: 'Business (199€)',
+    starter: 'Starter (20€)',
+    pro: 'Pro (49€)',
+    business: 'Business (100€)',
   };
 
   return (

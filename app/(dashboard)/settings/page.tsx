@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { StripeDashboardButton } from './stripe-dashboard-button';
+import { SubscriptionPortalButton } from './subscription-portal-button';
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -62,9 +63,9 @@ export default async function SettingsPage() {
 
   const planLabels = {
     free: 'Gratuit - 0€/mois',
-    starter: 'Starter - 49€/mois',
-    pro: 'Pro - 99€/mois',
-    business: 'Business - 199€/mois',
+    starter: 'Starter - 20€/mois',
+    pro: 'Pro - 49€/mois',
+    business: 'Business - 100€/mois',
   };
 
   const getStatusBadge = () => {
@@ -307,17 +308,20 @@ export default async function SettingsPage() {
 
               <div className="rounded-lg border bg-muted/50 p-4">
                 <p className="text-sm font-medium mb-3">
-                  Pour modifier votre plan ou accéder à votre portail de facturation Stripe :
+                  Portail de facturation
                 </p>
-                <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="space-y-2 text-sm text-muted-foreground mb-4">
                   <p>• Annuler votre abonnement</p>
                   <p>• Mettre à jour votre moyen de paiement</p>
                   <p>• Consulter vos factures</p>
-                  <p>• Changer de plan</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Note: Le portail Stripe sera disponible après configuration complète.
-                </p>
+                {team.organization.stripeCustomerId ? (
+                  <SubscriptionPortalButton />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Note: Le portail Stripe sera disponible après passage à un plan payant.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

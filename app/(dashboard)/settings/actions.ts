@@ -5,7 +5,7 @@ import { teams } from '@/drizzle/schema';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
-import { stripe } from '@/lib/stripe';
+import { stripe, createCustomerPortalSession } from '@/lib/stripe';
 import { getCurrentTeamId } from '@/lib/session';
 
 export async function changePlan(data: {
@@ -132,5 +132,52 @@ export async function changePlan(data: {
   } catch (error) {
     console.error('[changePlan]', error);
     return { error: 'Failed to change plan' };
+  }
+}
+
+/**
+ * Get Stripe Customer Portal link for subscription management
+ * Allows users to view invoices, update payment method, or cancel subscription
+ */
+export async function getSubscriptionPortalLink() {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { error: 'Unauthorized' };
+    }
+
+    const teamId = await getCurrentTeamId();
+
+    if (!teamId) {
+      return { error: 'No team found' };
+    }
+
+    const team = await db.query.teams.findFirst({
+      where: eq(teams.id, teamId),
+      with: {
+        organization: true,
+      },
+    });
+
+    if (!team) {
+      return { error: 'Team not found' };
+    }
+
+    if (!team.organization.stripeCustomerId) {
+      return { error: 'Aucun abonnement actif. Passez à un plan payant pour gérer votre abonnement.' };
+    }
+
+    const result = await createCustomerPortalSession({
+      customerId: team.organization.stripeCustomerId,
+      returnUrl: `${process.env.NEXT_PUBLIC_URL}/settings?tab=billing`,
+    });
+
+    return result;
+  } catch (error) {
+    console.error('[getSubscriptionPortalLink]', error);
+    return { error: 'Failed to create portal session' };
   }
 }

@@ -76,7 +76,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     stripePriceIds: { monthly: '', yearly: '' },
   },
   starter: {
-    subscription: { monthly: 49, yearly: 490 },
+    subscription: { monthly: 20, yearly: 200 },
     platformFees: { percentageFee: 2, minFee: 2, maxCap: null },  // 2%, minimum 2€, pas de plafond
     limits: {
       vehicles: 10,
@@ -106,7 +106,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     },
   },
   pro: {
-    subscription: { monthly: 99, yearly: 990 },
+    subscription: { monthly: 49, yearly: 490 },
     platformFees: { percentageFee: 1, minFee: 1.5, maxCap: 15 },  // 1%, minimum 1.50€, max 15€
     limits: {
       vehicles: 25,
@@ -136,7 +136,7 @@ export const PLAN_PRICING: Record<PlanType, PlanConfig> = {
     },
   },
   business: {
-    subscription: { monthly: 199, yearly: 1990 },
+    subscription: { monthly: 100, yearly: 1000 },
     platformFees: { percentageFee: 0.5, minFee: 1, maxCap: 5 },  // 0.5%, minimum 1€, max 5€
     limits: {
       vehicles: null,

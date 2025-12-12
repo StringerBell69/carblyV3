@@ -35,8 +35,8 @@ const PLANS = [
   {
     id: 'starter' as Plan,
     name: 'Starter',
-    monthlyPrice: 49,
-    yearlyPrice: 490, // 10 mois au prix de 12 (2 mois offerts)
+    monthlyPrice: 20,
+    yearlyPrice: 200, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 10,
     features: [
       '10 véhicules maximum',
@@ -50,8 +50,8 @@ const PLANS = [
   {
     id: 'pro' as Plan,
     name: 'Pro',
-    monthlyPrice: 99,
-    yearlyPrice: 990, // 10 mois au prix de 12 (2 mois offerts)
+    monthlyPrice: 49,
+    yearlyPrice: 490, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 25,
     features: [
       '25 véhicules maximum',
@@ -67,8 +67,8 @@ const PLANS = [
   {
     id: 'business' as Plan,
     name: 'Business',
-    monthlyPrice: 199,
-    yearlyPrice: 1990, // 10 mois au prix de 12 (2 mois offerts)
+    monthlyPrice: 100,
+    yearlyPrice: 1000, // 10 mois au prix de 12 (2 mois offerts)
     maxVehicles: 100,
     features: [
       '100 véhicules maximum',
