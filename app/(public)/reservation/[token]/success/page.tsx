@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Check, Loader2 } from 'lucide-react';
 
 export default function ReservationSuccessPage() {
@@ -15,7 +14,7 @@ export default function ReservationSuccessPage() {
 
   useEffect(() => {
     let pollAttempts = 0;
-    const maxAttempts = 10; // Try for up to 10 seconds
+    const maxAttempts = 10;
 
     const pollReservationStatus = async () => {
       try {
@@ -23,7 +22,6 @@ export default function ReservationSuccessPage() {
         const data = await response.json();
 
         if (response.ok && data.reservation) {
-          // If status is paid, wait a moment to show success then redirect
           if (data.reservation.status === 'paid') {
             setChecking(false);
             return;
@@ -32,11 +30,9 @@ export default function ReservationSuccessPage() {
 
         pollAttempts++;
 
-        // Continue polling if not paid yet and haven't exceeded max attempts
         if (pollAttempts < maxAttempts) {
           setTimeout(pollReservationStatus, 1000);
         } else {
-          // After max attempts, redirect anyway
           setChecking(false);
         }
       } catch (error) {
@@ -54,7 +50,6 @@ export default function ReservationSuccessPage() {
     pollReservationStatus();
   }, [token]);
 
-  // Separate useEffect for countdown and redirect
   useEffect(() => {
     if (!checking) {
       const countdownInterval = setInterval(() => {
@@ -67,7 +62,6 @@ export default function ReservationSuccessPage() {
         });
       }, 1000);
 
-      // Redirect after countdown
       const redirectTimer = setTimeout(() => {
         router.push(`/reservation/${token}`);
       }, 3000);
@@ -80,66 +74,57 @@ export default function ReservationSuccessPage() {
   }, [checking, token, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-      <Card className="w-full max-w-md border-green-200">
-        <CardHeader>
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="rounded-full bg-green-100 p-3">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-sm border-green-200">
+        <CardContent className="pt-8 pb-6">
+          <div className="text-center space-y-5">
+            {/* Success Icon */}
+            <div className="flex justify-center">
+              <div className="rounded-full bg-green-100 p-4">
                 <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-gray-900">Paiement réussi !</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-6">
-            <Alert className="border-green-200 bg-green-50">
-              <Check className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                Votre réservation a été confirmée avec succès
-              </AlertDescription>
-            </Alert>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex-shrink-0">
-                  <Check className="h-5 w-5 text-green-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Paiement confirmé</span>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 mb-1">Paiement réussi !</h1>
+              <p className="text-sm text-gray-600">Votre réservation est confirmée</p>
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-2 text-left">
+              <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+                <Check className="h-4 w-4 text-green-600 shrink-0" />
+                <span className="text-sm text-gray-700">Paiement confirmé</span>
               </div>
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex-shrink-0">
-                  {checking ? (
-                    <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                  ) : (
-                    <Check className="h-5 w-5 text-green-600" />
-                  )}
-                </div>
-                <span className="text-sm font-medium text-gray-700">Email de confirmation envoyé</span>
+              <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+                {checking ? (
+                  <Loader2 className="h-4 w-4 text-gray-400 animate-spin shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 text-green-600 shrink-0" />
+                )}
+                <span className="text-sm text-gray-700">Email de confirmation envoyé</span>
               </div>
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex-shrink-0">
-                  {checking ? (
-                    <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
-                  ) : (
-                    <Check className="h-5 w-5 text-green-600" />
-                  )}
-                </div>
-                <span className="text-sm font-medium text-gray-700">Contrat en cours de génération</span>
+              <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+                {checking ? (
+                  <Loader2 className="h-4 w-4 text-gray-400 animate-spin shrink-0" />
+                ) : (
+                  <Check className="h-4 w-4 text-green-600 shrink-0" />
+                )}
+                <span className="text-sm text-gray-700">Contrat en préparation</span>
               </div>
             </div>
 
+            {/* Redirect countdown */}
             {!checking && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  Redirection dans {countdown} seconde{countdown > 1 ? 's' : ''}...
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  Redirection dans {countdown}s...
                 </p>
               </div>
             )}
 
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Vous allez recevoir un email avec le contrat de location à signer électroniquement dans les prochaines minutes.
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Vous recevrez un email avec le contrat à signer électroniquement.
             </p>
           </div>
         </CardContent>

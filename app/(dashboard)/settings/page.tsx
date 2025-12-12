@@ -93,36 +93,38 @@ export default async function SettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8" />
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+          <Shield className="h-6 w-6 sm:h-8 sm:w-8" />
           Paramètres
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">
           Gérez votre compte et votre abonnement
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile" className="gap-2">
-            <User className="h-4 w-4" />
-            Profil
-          </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2">
-            <Users className="h-4 w-4" />
-            Équipe
-          </TabsTrigger>
-          <TabsTrigger value="billing" className="gap-2">
-            <CreditCard className="h-4 w-4" />
-            Facturation
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:grid-cols-4">
+            <TabsTrigger value="profile" className="flex-1 gap-1 sm:gap-2 px-3 sm:px-4">
+              <User className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Profil</span>
+            </TabsTrigger>
+            <TabsTrigger value="team" className="flex-1 gap-1 sm:gap-2 px-3 sm:px-4">
+              <Users className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Équipe</span>
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="flex-1 gap-1 sm:gap-2 px-3 sm:px-4">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Facturation</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex-1 gap-1 sm:gap-2 px-3 sm:px-4">
+              <Bell className="h-4 w-4" />
+              <span className="hidden xs:inline sm:inline">Notif.</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile" className="space-y-4">
           <Card>

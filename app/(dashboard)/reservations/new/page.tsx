@@ -345,31 +345,32 @@ export default function NewReservationPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <div>
         <Link
           href="/reservations"
-          className="text-primary hover:underline mb-4 inline-flex items-center gap-2"
+          className="text-primary hover:underline mb-3 sm:mb-4 inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour aux réservations
+          <span className="hidden sm:inline">Retour aux réservations</span>
+          <span className="sm:hidden">Retour</span>
         </Link>
-        <h1 className="text-3xl font-bold">Nouvelle réservation</h1>
-        <p className="text-gray-600 mt-1">Créez une location pour un client</p>
+        <h1 className="text-xl sm:text-3xl font-bold">Nouvelle réservation</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Créez une location pour un client</p>
       </div>
 
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
           {steps.map((s, index) => {
             const StepIcon = s.icon;
             const isActive = step === s.number;
             const isCompleted = step > s.number;
 
             return (
-              <div key={s.number} className="flex items-center flex-1">
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all ${
+                    className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all shrink-0 ${
                       isActive
                         ? "border-primary bg-primary text-white"
                         : isCompleted
@@ -377,10 +378,10 @@ export default function NewReservationPage() {
                           : "border-muted bg-background text-muted-foreground"
                     }`}
                   >
-                    <StepIcon className="h-5 w-5" />
+                    <StepIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <span
-                    className={`text-xs mt-2 font-medium ${
+                    className={`text-[10px] sm:text-xs mt-1.5 sm:mt-2 font-medium truncate ${
                       isActive || isCompleted
                         ? "text-primary"
                         : "text-muted-foreground"
@@ -391,7 +392,7 @@ export default function NewReservationPage() {
                 </div>
                 {index < steps.length - 1 && (
                   <Separator
-                    className={`flex-1 mx-2 ${
+                    className={`flex-1 mx-1 sm:mx-2 min-w-3 ${
                       isCompleted ? "bg-primary" : "bg-muted"
                     }`}
                   />

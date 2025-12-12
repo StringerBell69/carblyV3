@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { getReservation } from '../actions';
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
@@ -21,6 +20,7 @@ import {
   XCircle,
   AlertCircle,
   CreditCard,
+  ChevronRight,
 } from 'lucide-react';
 import { PaymentLinkCard } from './components/payment-link-card';
 import { ContractSection } from './components/contract-section';
@@ -80,490 +80,318 @@ export default async function ReservationDetailPage({
   const shouldShowBalanceCard = hasDeposit && (depositPaid || balanceAlreadyPaid);
 
   // Calculate total paid amount for cancellation
-  // IMPORTANT: Only include online payments (with stripePaymentIntentId) for refunds
-  // Cash payments cannot be refunded through Stripe
   const totalPaidOnline = reservation.payments
     ?.filter((p) => p.status === 'succeeded' && p.stripePaymentIntentId)
     .reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
+    <div className="max-w-4xl mx-auto space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <Link
           href="/reservations"
-          className="text-primary hover:underline mb-4 inline-flex items-center gap-2"
+          className="text-primary hover:underline inline-flex items-center gap-1.5 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour aux réservations
+          <span className="hidden sm:inline">Retour</span>
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Détails de la réservation</h1>
-            <p className="text-gray-600 mt-1">
-              Réservation #{reservation.id.slice(0, 8)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge
-              variant={statusConfig[reservation.status].variant}
-              className="text-base px-4 py-2"
-            >
-              <StatusIcon className="mr-2 h-4 w-4" />
-              {statusConfig[reservation.status].label}
-            </Badge>
-            <CancelReservationButton
-              reservationId={reservation.id}
-              status={reservation.status}
-              hasPayments={reservation.payments && reservation.payments.length > 0}
-              totalPaidOnline={totalPaidOnline}
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={statusConfig[reservation.status].variant}
+            className="text-xs px-2.5 py-1"
+          >
+            <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
+            {statusConfig[reservation.status].label}
+          </Badge>
+          <CancelReservationButton
+            reservationId={reservation.id}
+            status={reservation.status}
+            hasPayments={reservation.payments && reservation.payments.length > 0}
+            totalPaidOnline={totalPaidOnline}
+          />
         </div>
       </div>
 
-      <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="details" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Détails
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Timeline
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Paiements
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Info Card */}
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          {/* Vehicle & Customer Row */}
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+            {/* Vehicle */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
+                <Car className="h-3.5 w-3.5" />
+                Véhicule
+              </div>
+              <p className="font-bold text-base sm:text-lg">
+                {reservation.vehicle.brand} {reservation.vehicle.model}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {reservation.vehicle.plate}
+              </p>
+            </div>
 
-        <TabsContent value="details" className="space-y-6 mt-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <Car className="h-5 w-5 text-primary" />
-                  </div>
-                  Véhicule
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-2xl font-bold">
-                    {reservation.vehicle.brand} {reservation.vehicle.model}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {reservation.vehicle.plate}
-                  </p>
-                </div>
-                {reservation.vehicle.year && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Année</p>
-                    <p className="font-medium">{reservation.vehicle.year}</p>
-                  </div>
-                )}
-                <Separator />
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Tarif journalier
-                  </p>
-                  <p className="text-xl font-semibold text-primary">
-                    {formatCurrency(parseFloat(reservation.vehicle.dailyRate))}
-                    /jour
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  Client
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xl font-semibold">
-                    {reservation.customer?.firstName}{" "}
-                    {reservation.customer?.lastName}
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">
-                        {reservation.customer?.email}
-                      </p>
-                    </div>
-                  </div>
-                  {reservation.customer?.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Téléphone
-                        </p>
-                        <p className="font-medium">
-                          {reservation.customer?.phone}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {reservation.customer?.identityVerified && (
-                  <>
-                    <Separator />
-                    <div className="flex items-center gap-2 text-green-600">
-                      <Shield className="h-4 w-4" />
-                      <p className="text-sm font-medium">Identité vérifiée</p>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {/* Customer */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
+                <User className="h-3.5 w-3.5" />
+                Client
+              </div>
+              <p className="font-bold text-base sm:text-lg">
+                {reservation.customer?.firstName} {reservation.customer?.lastName}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                {reservation.customer?.email}
+              </p>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="rounded-md bg-primary/10 p-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                Dates et durée
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-green-100 p-3">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Date de début
-                    </p>
-                    <p className="font-semibold text-lg">
-                      {formatDate(reservation.startDate)}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Clock className="h-3 w-3" />
-                      {formatTime(reservation.startDate)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="rounded-md bg-red-100 p-3">
-                    <Calendar className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Date de fin</p>
-                    <p className="font-semibold text-lg">
-                      {formatDate(reservation.endDate)}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Clock className="h-3 w-3" />
-                      {formatTime(reservation.endDate)}
-                    </p>
-                  </div>
-                </div>
+          <Separator className="my-4" />
+
+          {/* Dates Row */}
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-green-600 text-xs sm:text-sm">
+                <Calendar className="h-3.5 w-3.5" />
+                Début
               </div>
-            </CardContent>
-          </Card>
+              <p className="font-semibold text-sm sm:text-base">
+                {formatDate(reservation.startDate)}
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatTime(reservation.startDate)}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-red-600 text-xs sm:text-sm">
+                <Calendar className="h-3.5 w-3.5" />
+                Fin
+              </div>
+              <p className="font-semibold text-sm sm:text-base">
+                {formatDate(reservation.endDate)}
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatTime(reservation.endDate)}
+              </p>
+            </div>
+          </div>
 
-          {reservation.internalNotes && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Notes internes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">
-                  {reservation.internalNotes}
+          <Separator className="my-4" />
+
+          {/* Payment Summary */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+              <p className="text-xl sm:text-2xl font-bold text-primary">
+                {formatCurrency(totalAmount)}
+              </p>
+            </div>
+            {hasDeposit && (
+              <div className="text-right space-y-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground">Acompte</p>
+                <p className="font-semibold text-sm sm:text-base">
+                  {formatCurrency(depositAmount)}
+                  {depositPaid && (
+                    <CheckCircle2 className="inline ml-1.5 h-4 w-4 text-green-500" />
+                  )}
                 </p>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            )}
+          </div>
 
-          {magicLink && reservation.status === "pending_payment" && (
+          {/* Customer Contact */}
+          {reservation.customer?.phone && (
             <>
-              <PaymentLinkCard
-                magicLink={magicLink}
-                reservationId={reservation.id}
-                customerEmail={reservation.customer?.email}
-                customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
-                hasCustomer={!!reservation.customer}
-              />
-              <PaymentStatusCard reservationId={reservation.id} />
+              <Separator className="my-4" />
+              <div className="flex gap-4 text-sm">
+                <a 
+                  href={`mailto:${reservation.customer?.email}`}
+                  className="flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  <Mail className="h-4 w-4" />
+                  <span className="hidden sm:inline">Email</span>
+                </a>
+                <a 
+                  href={`tel:${reservation.customer?.phone}`}
+                  className="flex items-center gap-1.5 text-primary hover:underline"
+                >
+                  <Phone className="h-4 w-4" />
+                  {reservation.customer?.phone}
+                </a>
+              </div>
             </>
           )}
+        </CardContent>
+      </Card>
 
-          <ContractSection
+      {/* Action Cards - Show only relevant ones */}
+      {magicLink && reservation.status === "pending_payment" && (
+        <>
+          <PaymentLinkCard
+            magicLink={magicLink}
             reservationId={reservation.id}
-            contract={reservation.contracts?.[0]}
-            status={reservation.status}
-            yousignEnabled={isYousignEnabled()}
+            customerEmail={reservation.customer?.email}
+            customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
+            hasCustomer={!!reservation.customer}
           />
+          <PaymentStatusCard reservationId={reservation.id} />
+        </>
+      )}
 
-          {shouldShowBalanceCard && (
-            <BalancePaymentCard
-              reservationId={reservation.id}
-              totalAmount={totalAmount}
-              depositAmount={depositAmount}
-              platformFees={balanceFees.totalFee}
-              customerEmail={reservation.customer?.email}
-              customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
-              balanceAlreadyPaid={balanceAlreadyPaid}
-              depositPaid={depositPaid}
-            />
-          )}
-        </TabsContent>
+      <ContractSection
+        reservationId={reservation.id}
+        contract={reservation.contracts?.[0]}
+        status={reservation.status}
+        yousignEnabled={isYousignEnabled()}
+      />
 
-        <TabsContent value="timeline" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Historique de la réservation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="rounded-full bg-primary/10 p-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="w-px h-full bg-border mt-2"></div>
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <p className="font-semibold">Réservation créée</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(reservation.createdAt)}
-                    </p>
-                  </div>
-                </div>
+      {shouldShowBalanceCard && (
+        <BalancePaymentCard
+          reservationId={reservation.id}
+          totalAmount={totalAmount}
+          depositAmount={depositAmount}
+          platformFees={balanceFees.totalFee}
+          customerEmail={reservation.customer?.email}
+          customerName={`${reservation.customer?.firstName} ${reservation.customer?.lastName}`}
+          balanceAlreadyPaid={balanceAlreadyPaid}
+          depositPaid={depositPaid}
+        />
+      )}
 
-                {reservation.status === "pending_payment" && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-yellow-100 p-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                      </div>
-                      <div className="w-px h-full bg-border mt-2"></div>
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-semibold">En attente de paiement</p>
-                      <p className="text-sm text-muted-foreground">
-                        Le client doit confirmer le paiement
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {(reservation.status === "paid" ||
-                  reservation.status === "confirmed" ||
-                  reservation.status === "in_progress" ||
-                  reservation.status === "completed") && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-green-100 p-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="w-px h-full bg-border mt-2"></div>
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-semibold">Paiement confirmé</p>
-                      <p className="text-sm text-muted-foreground">
-                        Le paiement de l'acompte a été reçu
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {reservation.contracts?.[0]?.signedAt && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-blue-100 p-2">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="w-px h-full bg-border mt-2"></div>
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-semibold">
-                        Contrat signé électroniquement
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(reservation.contracts[0].signedAt)} -
-                        Signature via Yousign
-                      </p>
-                      {reservation.contracts[0].signedPdfUrl && (
-                        <a
-                          href={reservation.contracts[0].signedPdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline mt-1 inline-block"
-                        >
-                          Télécharger le contrat signé →
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {(reservation.status === "in_progress" ||
-                  reservation.status === "completed") && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-blue-100 p-2">
-                        <Car className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="w-px h-full bg-border mt-2"></div>
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <p className="font-semibold">Location en cours</p>
-                      <p className="text-sm text-muted-foreground">
-                        Le véhicule a été remis au client
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {reservation.status === "completed" && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-green-100 p-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Location terminée</p>
-                      <p className="text-sm text-muted-foreground">
-                        Le véhicule a été restitué
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {reservation.status === "cancelled" && (
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-red-100 p-2">
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">Réservation annulée</p>
-                      <p className="text-sm text-muted-foreground">
-                        Cette réservation a été annulée
-                      </p>
-                    </div>
-                  </div>
-                )}
+      {/* Internal Notes */}
+      {reservation.internalNotes && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Notes internes</p>
+                <p className="text-sm whitespace-pre-wrap">{reservation.internalNotes}</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="payments" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="rounded-md bg-primary/10 p-2">
-                  <Euro className="h-5 w-5 text-primary" />
-                </div>
-                Informations de paiement
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="font-medium">Montant total</span>
-                  <span className="text-xl font-bold text-primary">
-                    {formatCurrency(parseFloat(reservation.totalAmount))}
+      {/* Payments History - Collapsible style */}
+      {reservation.payments && reservation.payments.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <details className="group">
+              <summary className="flex items-center justify-between cursor-pointer list-none">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-sm">
+                    Historique des paiements ({reservation.payments.length})
                   </span>
                 </div>
-
-                {reservation.depositAmount && (
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
+                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="mt-3 space-y-2">
+                {reservation.payments.map((payment: any) => (
+                  <div
+                    key={payment.id}
+                    className="flex justify-between items-center p-2.5 bg-muted/50 rounded-lg text-sm"
+                  >
                     <div className="flex items-center gap-2">
-                      <Euro className="h-4 w-4 text-muted-foreground" />
-                      <span>Acompte</span>
-                    </div>
-                    <span className="font-semibold">
-                      {formatCurrency(parseFloat(reservation.depositAmount))}
-                    </span>
-                  </div>
-                )}
-
-                {reservation.includeInsurance &&
-                  reservation.insuranceAmount && (
-                    <div className="flex justify-between items-center p-3 border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                        <span>Assurance</span>
-                      </div>
-                      <span className="font-semibold">
-                        {formatCurrency(
-                          parseFloat(reservation.insuranceAmount)
-                        )}
+                      {payment.status === 'succeeded' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : payment.status === 'refunded' ? (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-yellow-500" />
+                      )}
+                      <span className="capitalize">
+                        {payment.type === 'deposit' ? 'Acompte' : 
+                         payment.type === 'balance' ? 'Solde' : 
+                         payment.type === 'total' ? 'Total' : payment.type}
                       </span>
                     </div>
-                  )}
-
-                {reservation.cautionAmount && (
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span>Caution</span>
-                    </div>
                     <span className="font-semibold">
-                      {formatCurrency(parseFloat(reservation.cautionAmount))}
+                      {formatCurrency(parseFloat(payment.amount))}
                     </span>
                   </div>
-                )}
+                ))}
+              </div>
+            </details>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Timeline - Simplified */}
+      <Card>
+        <CardContent className="p-4">
+          <details className="group">
+            <summary className="flex items-center justify-between cursor-pointer list-none">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-sm">Historique</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+            </summary>
+            <div className="mt-3 space-y-3 pl-6 border-l-2 border-border">
+              {/* Created */}
+              <div className="relative">
+                <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                </div>
+                <p className="text-sm font-medium">Réservation créée</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatDate(reservation.createdAt)}
+                </p>
               </div>
 
-              {reservation.payments && reservation.payments.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Historique des paiements
-                    </h4>
-                    <div className="space-y-2">
-                      {reservation.payments.map((payment: any) => (
-                        <div
-                          key={payment.id}
-                          className="flex justify-between items-center p-3 border rounded-lg"
-                        >
-                          <div>
-                            <p className="font-medium">{payment.type}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {payment.status}
-                            </p>
-                          </div>
-                          <span className="font-semibold">
-                            {formatCurrency(parseFloat(payment.amount))}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+              {/* Payment Status */}
+              {depositPaid && (
+                <div className="relative">
+                  <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
                   </div>
-                </>
+                  <p className="text-sm font-medium">Paiement reçu</p>
+                  <p className="text-xs text-muted-foreground">Acompte confirmé</p>
+                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+              {/* Contract Signed */}
+              {reservation.contracts?.[0]?.signedAt && (
+                <div className="relative">
+                  <div className="absolute -left-[25px] w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  </div>
+                  <p className="text-sm font-medium">Contrat signé</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(reservation.contracts[0].signedAt)}
+                  </p>
+                </div>
+              )}
+
+              {/* Current Status */}
+              {reservation.status !== 'draft' && (
+                <div className="relative">
+                  <div className={`absolute -left-[25px] w-4 h-4 rounded-full flex items-center justify-center ${
+                    reservation.status === 'cancelled' ? 'bg-red-100' :
+                    reservation.status === 'completed' ? 'bg-green-100' :
+                    reservation.status === 'in_progress' ? 'bg-blue-100' :
+                    'bg-yellow-100'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      reservation.status === 'cancelled' ? 'bg-red-500' :
+                      reservation.status === 'completed' ? 'bg-green-500' :
+                      reservation.status === 'in_progress' ? 'bg-blue-500' :
+                      'bg-yellow-500'
+                    }`} />
+                  </div>
+                  <p className="text-sm font-medium">
+                    {statusConfig[reservation.status].label}
+                  </p>
+                </div>
+              )}
+            </div>
+          </details>
+        </CardContent>
+      </Card>
     </div>
   );
 }

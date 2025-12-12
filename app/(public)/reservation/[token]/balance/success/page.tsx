@@ -8,11 +8,11 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  Home,
-  Mail,
   Car,
+  ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatDate } from '@/lib/utils';
 
 export default function BalanceSuccessPage() {
   const params = useParams();
@@ -35,7 +35,6 @@ export default function BalanceSuccessPage() {
 
   const verifyPayment = async () => {
     try {
-      // Use the balance payment token to get reservation details
       const response = await fetch(`/api/reservations/public/${token}/balance`);
       const data = await response.json();
 
@@ -53,33 +52,22 @@ export default function BalanceSuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-8 flex flex-col items-center justify-center">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-            <p className="text-gray-600 text-center">Vérification de votre paiement...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-600">Vérification...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-        <Card className="w-full max-w-md border-red-200">
-          <CardContent className="pt-8 pb-6">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="rounded-full bg-red-100 p-3">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
-                </div>
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur</h2>
-                <p className="text-gray-600">{error}</p>
-              </div>
-            </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-sm">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+            <p className="text-gray-600">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -87,76 +75,59 @@ export default function BalanceSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 px-4 py-12">
-      <Card className="w-full max-w-lg border-green-200">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-sm border-green-200">
         <CardContent className="pt-8 pb-6">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-5">
             {/* Success Icon */}
             <div className="flex justify-center">
-              <div className="rounded-full bg-green-100 p-4 animate-pulse">
-                <CheckCircle2 className="w-16 h-16 text-green-600" />
+              <div className="rounded-full bg-green-100 p-4">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
             </div>
 
-            {/* Success Message */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Paiement confirmé !
-              </h1>
-              <p className="text-lg text-gray-600">
-                Le solde de votre réservation a été payé avec succès
-              </p>
+              <h1 className="text-xl font-bold text-gray-900 mb-1">Solde payé !</h1>
+              <p className="text-sm text-gray-600">Votre réservation est complète</p>
             </div>
 
-            {/* Reservation Details */}
+            {/* Reservation Info */}
             {reservation && (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-center gap-2 text-primary">
-                  <Car className="w-5 h-5" />
-                  <p className="font-semibold">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-primary mb-1">
+                  <Car className="w-4 h-4" />
+                  <span className="font-semibold text-sm">
                     {reservation.vehicle.brand} {reservation.vehicle.model}
-                  </p>
+                  </span>
                 </div>
-                <p className="text-sm text-gray-600">
-                  Du {new Date(reservation.startDate).toLocaleDateString('fr-FR')} au{' '}
-                  {new Date(reservation.endDate).toLocaleDateString('fr-FR')}
+                <p className="text-xs text-gray-600">
+                  {formatDate(reservation.startDate)} → {formatDate(reservation.endDate)}
                 </p>
               </div>
             )}
 
-            {/* Information Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-              <div className="flex items-center justify-center gap-2 text-blue-900">
-                <Mail className="w-5 h-5" />
-                <p className="font-medium">Confirmation envoyée</p>
-              </div>
-              <p className="text-sm text-blue-800">
-                Un email de confirmation a été envoyé à votre adresse. Vous y trouverez tous les détails de votre réservation.
-              </p>
-            </div>
-
-            {/* Next Steps */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-left">
-              <h3 className="font-semibold text-green-900 mb-2">📋 Prochaines étapes</h3>
-              <ul className="space-y-1 text-sm text-green-800">
+            {/* Tips */}
+            <div className="bg-green-50 rounded-lg p-3 text-xs text-green-800 text-left">
+              <p className="font-medium mb-1">📋 Prochaines étapes</p>
+              <ul className="space-y-0.5">
                 <li>• Conservez votre email de confirmation</li>
-                <li>• Préparez vos documents (permis, carte d'identité)</li>
-                <li>• Présentez-vous à l'heure convenue pour récupérer le véhicule</li>
+                <li>• Préparez permis et pièce d'identité</li>
+                <li>• Présentez-vous à l'heure convenue</li>
               </ul>
             </div>
 
             {/* Action Button */}
-            <div className="pt-4">
-              <Link href={reservation?.magicLinkToken ? `/reservation/${reservation.magicLinkToken}` : '#'}>
-                <Button className="w-full" size="lg" disabled={!reservation?.magicLinkToken}>
-                  <Home className="w-4 h-4 mr-2" />
+            {reservation?.magicLinkToken && (
+              <Link href={`/reservation/${reservation.magicLinkToken}`} className="block">
+                <Button className="w-full" size="lg">
                   Voir ma réservation
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-            </div>
+            )}
 
-            <p className="text-xs text-gray-500">
-              Vous pouvez fermer cette page en toute sécurité
+            <p className="text-[10px] text-gray-400">
+              Confirmation envoyée par email
             </p>
           </div>
         </CardContent>
